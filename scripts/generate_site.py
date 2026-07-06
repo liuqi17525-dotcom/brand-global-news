@@ -1,6 +1,7 @@
 import html
 import json
 import re
+import shutil
 import sys
 import urllib.parse
 import urllib.request
@@ -13,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
+ASSETS = PUBLIC / "assets"
 TIMEZONE = timezone(timedelta(hours=8))
 
 QUERIES = [
@@ -25,13 +27,23 @@ QUERIES = [
 ]
 
 CATEGORY_KEYWORDS = [
-    ("内容电商", ["tiktok", "short video", "creator", "live", "直播", "达人", "短视频", "内容"]),
-    ("平台经营", ["amazon", "temu", "shein", "shop", "marketplace", "平台", "卖家"]),
+    ("平台经营", ["amazon", "temu", "shein", "marketplace", "seller", "平台", "卖家"]),
+    ("内容电商", ["tiktok", "creator", "live", "short video", "直播", "达人", "短视频", "内容"]),
     ("DTC 独立站", ["shopify", "dtc", "独立站", "direct-to-consumer", "brand site"]),
     ("物流支付", ["logistics", "shipping", "fulfillment", "payment", "物流", "支付", "履约"]),
     ("合规政策", ["tariff", "compliance", "regulation", "privacy", "关税", "合规", "监管", "税"]),
     ("消费趋势", ["consumer", "trend", "demand", "消费者", "趋势", "需求"]),
 ]
+
+COVER_CLASS = {
+    "平台经营": "cover-platform",
+    "内容电商": "cover-content",
+    "DTC 独立站": "cover-dtc",
+    "物流支付": "cover-logistics",
+    "合规政策": "cover-compliance",
+    "消费趋势": "cover-consumer",
+    "品牌出海": "cover-global",
+}
 
 
 @dataclass
@@ -49,7 +61,7 @@ def fetch_url(url: str, timeout: int = 20) -> bytes:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "Mozilla/5.0 brand-global-news/2.0",
+            "User-Agent": "Mozilla/5.0 brand-global-news/3.0",
             "Accept": "application/rss+xml, application/xml, text/xml",
         },
     )
@@ -63,21 +75,19 @@ def strip_tags(value: str) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def normalize_link(link: str) -> str:
+    if "news.google.com" not in link:
+        return link
+    params = urllib.parse.parse_qs(urllib.parse.urlparse(link).query)
+    return params.get("url", [link])[0]
+
+
 def source_from_item(item: ET.Element) -> str:
     source = item.findtext("source")
     if source:
         return strip_tags(source)
     link = item.findtext("link") or ""
-    host = urllib.parse.urlparse(link).netloc.replace("www.", "")
-    return host or "资讯源"
-
-
-def normalize_link(link: str) -> str:
-    if "news.google.com" not in link:
-        return link
-    parsed = urllib.parse.urlparse(link)
-    params = urllib.parse.parse_qs(parsed.query)
-    return params.get("url", [link])[0]
+    return urllib.parse.urlparse(link).netloc.replace("www.", "") or "资讯源"
 
 
 def parse_date(value: str) -> datetime:
@@ -97,7 +107,7 @@ def category_for(title: str, summary: str) -> str:
 
 def heat_for(title: str, summary: str, index: int) -> int:
     text = f"{title} {summary}".lower()
-    score = 68 + max(0, 16 - index * 2)
+    score = 68 + max(0, 18 - index * 2)
     for _, words in CATEGORY_KEYWORDS:
         score += sum(2 for word in words if word.lower() in text)
     return min(score, 96)
@@ -105,8 +115,8 @@ def heat_for(title: str, summary: str, index: int) -> int:
 
 def insight_for(category: str) -> str:
     mapping = {
-        "内容电商": "把达人、素材、商品页和库存联动起来，避免只有流量没有稳定转化。",
         "平台经营": "用平台验证市场和价格带，同时把评价、品牌资产和用户反馈沉淀下来。",
+        "内容电商": "把达人、素材、商品页和库存联动起来，避免只有流量没有稳定转化。",
         "DTC 独立站": "关注复购、支付体验和一方数据，不要只用广告 ROAS 判断成败。",
         "物流支付": "核心市场优先保障履约确定性，物流体验会直接影响评价和复购。",
         "合规政策": "把税务、认证、标签和隐私要求前置到选品与上市流程里。",
@@ -149,10 +159,9 @@ def collect_items() -> list[Item]:
         try:
             for item in fetch_google_news(query):
                 key = re.sub(r"\W+", "", item.title.lower())[:90]
-                if not key or key in seen:
-                    continue
-                seen.add(key)
-                collected.append(item)
+                if key and key not in seen:
+                    seen.add(key)
+                    collected.append(item)
         except Exception as exc:
             print(f"warn: failed query {query}: {exc}", file=sys.stderr)
     collected.sort(key=lambda item: (item.heat, item.published), reverse=True)
@@ -175,41 +184,101 @@ def fallback_items(today: str) -> list[Item]:
             published=today,
             summary="自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
             category=category,
-            heat=88 - index * 3,
+            heat=90 - index * 3,
         )
         for index, (title, link, source, category) in enumerate(seeds)
     ]
+
+
+def ensure_assets() -> None:
+    ASSETS.mkdir(parents=True, exist_ok=True)
+    source = ROOT / "assets" / "global-commerce-hero.png"
+    target = ASSETS / "global-commerce-hero.png"
+    if source.exists():
+        shutil.copy2(source, target)
 
 
 def fmt_date(now: datetime) -> str:
     return f"{now.year}年{now.month}月{now.day}日"
 
 
-def render_radar(categories: list[str]) -> str:
-    labels = categories[:6] or ["平台经营", "内容电商", "DTC 独立站", "物流支付"]
-    return "".join(
-        f'<span class="radar-chip" style="--i:{index}">{html.escape(label)}</span>'
-        for index, label in enumerate(labels)
-    )
+def summary_mode(now: datetime) -> tuple[str, str]:
+    if now.month == 12 and now.day == 31:
+        return "年终总结", f"{now.year} 年品牌出海年度复盘"
+    if (now.month, now.day) in {(3, 31), (6, 30), (9, 30)}:
+        quarter = (now.month - 1) // 3 + 1
+        return "季度总结", f"{now.year} Q{quarter} 品牌出海季度复盘"
+    return "今日分析", "今天的资讯说明了什么"
+
+
+def category_counts(items: list[Item]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in items:
+        counts[item.category] = counts.get(item.category, 0) + 1
+    return counts
+
+
+def analysis_points(items: list[Item], now: datetime) -> list[str]:
+    counts = category_counts(items)
+    ordered = sorted(counts.items(), key=lambda pair: pair[1], reverse=True)
+    top = ordered[0][0] if ordered else "品牌出海"
+    second = ordered[1][0] if len(ordered) > 1 else "内容与履约"
+    mode, _ = summary_mode(now)
+    prefix = "本期" if mode != "今日分析" else "今天"
+    return [
+        f"{prefix}最集中的信号来自「{top}」，说明出海经营的核心注意力正在向这一侧倾斜。",
+        f"「{second}」也值得跟进，它往往决定流量能不能转成稳定订单和可复购用户。",
+        "建议把资讯拆成三个动作：调整选品假设、验证渠道效率、检查履约与合规成本。",
+    ]
+
+
+def render_section_covers(categories: list[str]) -> str:
+    blocks = []
+    labels = categories or ["平台经营", "内容电商", "DTC 独立站", "物流支付", "合规政策", "消费趋势"]
+    for category in labels[:6]:
+        cover = COVER_CLASS.get(category, "cover-global")
+        blocks.append(
+            f"""
+            <button class="section-cover {cover}" data-filter="{html.escape(category)}" type="button">
+              <span>{html.escape(category)}</span>
+              <small>{html.escape(insight_for(category))}</small>
+            </button>
+            """
+        )
+    return "\n".join(blocks)
+
+
+def render_filter_buttons(categories: list[str]) -> str:
+    buttons = ['<button class="filter is-active" data-filter="all" type="button">全部</button>']
+    for category in categories:
+        buttons.append(
+            f'<button class="filter" data-filter="{html.escape(category)}" type="button">{html.escape(category)}</button>'
+        )
+    return "\n".join(buttons)
 
 
 def render_cards(items: list[Item]) -> str:
     cards = []
     for index, item in enumerate(items, start=1):
+        cover = COVER_CLASS.get(item.category, "cover-global")
         cards.append(
             f"""
-            <article class="news-card">
-              <div class="card-top">
-                <span class="rank">{index:02d}</span>
-                <span class="tag">{html.escape(item.category)}</span>
-                <span class="heat">热度 {item.heat}</span>
+            <article class="news-card" data-category="{html.escape(item.category)}">
+              <div class="card-cover {cover}">
+                <span>{index:02d}</span>
               </div>
-              <h3>{html.escape(item.title)}</h3>
-              <p>{html.escape(item.summary or "暂无摘要，请点击来源查看原文。")}</p>
-              <div class="insight">启示：{html.escape(insight_for(item.category))}</div>
-              <div class="card-bottom">
-                <span>{html.escape(item.source)} · {html.escape(item.published)}</span>
-                <a href="{html.escape(item.link)}" target="_blank" rel="noreferrer">来源</a>
+              <div class="card-body">
+                <div class="card-meta">
+                  <span class="tag">{html.escape(item.category)}</span>
+                  <span>热度 {item.heat}</span>
+                </div>
+                <h3>{html.escape(item.title)}</h3>
+                <p>{html.escape(item.summary or "暂无摘要，请点击来源查看原文。")}</p>
+                <div class="insight">启示：{html.escape(insight_for(item.category))}</div>
+                <div class="card-foot">
+                  <span>{html.escape(item.source)} · {html.escape(item.published)}</span>
+                  <a href="{html.escape(item.link)}" target="_blank" rel="noreferrer">查看原文</a>
+                </div>
               </div>
             </article>
             """
@@ -222,9 +291,9 @@ def render_html(items: list[Item], now: datetime) -> str:
     machine_date = now.strftime("%Y-%m-%d %H:%M")
     categories = sorted({item.category for item in items})
     source_count = len({item.source for item in items})
-    avg_heat = round(sum(item.heat for item in items) / max(len(items), 1))
-    cards_html = render_cards(items)
-    radar_html = render_radar(categories)
+    mode, analysis_title = summary_mode(now)
+    points = analysis_points(items, now)
+    top_title = items[0].title if items else "今日暂无可用资讯"
 
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -232,529 +301,543 @@ def render_html(items: list[Item], now: datetime) -> str:
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>品牌出海热点速递</title>
-  <style>
-{CSS}
-  </style>
+  <style>{CSS}</style>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="品牌出海热点速递首页">
-      <span class="brand-mark">BG</span>
-      <span>品牌出海热点速递</span>
-    </a>
-    <div class="top-meta">
-      <span>{today}</span>
-      <span>北京时间 09:00 自动更新</span>
-    </div>
+    <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
+    <nav>
+      <a href="#covers">版块</a>
+      <a href="#analysis">分析</a>
+      <a href="#news">热点</a>
+    </nav>
   </header>
 
   <main>
     <section class="hero">
       <div class="hero-copy">
-        <p class="eyebrow">Global Brand Intelligence</p>
-        <h1>今天的出海信号</h1>
-        <p class="lead">聚合品牌出海、跨境电商、内容电商、DTC 独立站、物流支付与合规动态。少一点花哨，多一点能直接看懂的经营线索。</p>
+        <p class="eyebrow">{today} · Global Brand Intelligence</p>
+        <h1>今天的出海热点，先看这几条信号</h1>
+        <p>{html.escape(top_title)}</p>
+        <div class="hero-actions">
+          <a href="#news">查看热点</a>
+          <a href="#analysis">阅读分析</a>
+        </div>
       </div>
-      <div class="radar-panel" aria-label="热点雷达">
-        <div class="radar-grid">
-          <div class="radar-core">
-            <strong>{avg_heat}</strong>
-            <span>平均热度</span>
-          </div>
-          {radar_html}
+      <div class="hero-media">
+        <img src="assets/global-commerce-hero.png" alt="品牌出海全球商业封面" />
+        <div>
+          <strong>{len(items)}</strong>
+          <span>条热点 · {source_count} 个来源</span>
         </div>
       </div>
     </section>
 
-    <section class="stats">
-      <div class="stat">
-        <span>热点</span>
-        <strong>{len(items)}</strong>
-        <p>条高相关资讯</p>
-      </div>
-      <div class="stat">
-        <span>来源</span>
-        <strong>{source_count}</strong>
-        <p>个信息来源</p>
-      </div>
-      <div class="stat">
-        <span>更新</span>
-        <strong>09:00</strong>
-        <p>每天自动刷新</p>
-      </div>
-      <div class="stat">
-        <span>重点</span>
-        <strong>{html.escape(categories[0] if categories else "品牌出海")}</strong>
-        <p>今日高频主题</p>
-      </div>
+    <section class="section-covers" id="covers" aria-label="资讯版块">
+      {render_section_covers(categories)}
     </section>
 
-    <section class="layout">
-      <div class="main-column">
-        <div class="section-title">
+    <section class="analysis-panel" id="analysis">
+      <div>
+        <p class="eyebrow">{mode}</p>
+        <h2>{analysis_title}</h2>
+      </div>
+      <ol>
+        {''.join(f'<li>{html.escape(point)}</li>' for point in points)}
+      </ol>
+    </section>
+
+    <section class="news-section" id="news">
+      <div class="section-head">
+        <div>
           <p class="eyebrow">News Feed</p>
-          <h2>今日热点</h2>
+          <h2>热点卡片</h2>
         </div>
-        <div class="news-grid">
-          {cards_html}
+        <div class="filters" aria-label="筛选热点">
+          {render_filter_buttons(categories)}
         </div>
       </div>
-
-      <aside class="side-column">
-        <section class="panel">
-          <p class="eyebrow">Action List</p>
-          <h2>今天先做三件事</h2>
-          <ol>
-            <li>挑一条与你品类最相关的资讯，拆出市场、渠道、价格和履约影响。</li>
-            <li>检查主力 SKU 的商品页、评论痛点和本地化支付是否匹配目标市场。</li>
-            <li>把今天的内容信号转成 3 条短视频、广告或邮件素材角度。</li>
-          </ol>
-        </section>
-
-        <section class="panel">
-          <p class="eyebrow">Market Watch</p>
-          <h2>市场雷达</h2>
-          <div class="market-list">
-            <div><b>美国</b><span>平台竞争强，品牌信任关键</span></div>
-            <div><b>欧洲</b><span>合规复杂，品质与认证更重要</span></div>
-            <div><b>东南亚</b><span>内容电商快，价格敏感</span></div>
-            <div><b>中东</b><span>增长快，本地履约要求高</span></div>
-          </div>
-        </section>
-      </aside>
+      <div class="news-grid">
+        {render_cards(items)}
+      </div>
     </section>
   </main>
 
   <footer>
-    最后更新：{machine_date} Asia/Shanghai。页面仅展示摘要与来源链接，不转载全文。
+    最后更新：{machine_date} Asia/Shanghai。每日为今日分析；季度最后一天自动切换为季度总结；12月31日自动切换为年终总结。
   </footer>
+
+  <script>
+    const buttons = document.querySelectorAll("[data-filter]");
+    const filters = document.querySelectorAll(".filter");
+    const cards = document.querySelectorAll(".news-card");
+
+    function applyFilter(value) {{
+      filters.forEach((button) => button.classList.toggle("is-active", button.dataset.filter === value));
+      cards.forEach((card) => {{
+        const show = value === "all" || card.dataset.category === value;
+        card.hidden = !show;
+      }});
+      document.querySelector("#news").scrollIntoView({{ behavior: "smooth", block: "start" }});
+    }}
+
+    buttons.forEach((button) => {{
+      button.addEventListener("click", () => applyFilter(button.dataset.filter));
+    }});
+  </script>
 </body>
 </html>
 """
 
 
 CSS = r"""
-    :root {
-      --bg: #f4f6f8;
-      --panel: #ffffff;
-      --ink: #172026;
-      --muted: #63717a;
-      --line: #dce3e7;
-      --green: #0f766e;
-      --blue: #245a92;
-      --gold: #b7791f;
-      --red: #c24141;
-      --shadow: 0 14px 36px rgba(23, 32, 38, 0.08);
-    }
+:root {
+  --bg: #f5f7f8;
+  --ink: #172026;
+  --muted: #64727a;
+  --panel: #ffffff;
+  --line: #dce4e8;
+  --green: #0f766e;
+  --blue: #285f95;
+  --gold: #b87922;
+  --red: #be4444;
+  --shadow: 0 18px 46px rgba(18, 30, 38, .1);
+}
 
-    * { box-sizing: border-box; }
+* { box-sizing: border-box; }
 
-    body {
-      margin: 0;
-      background:
-        linear-gradient(180deg, #e9eef2 0, #f4f6f8 280px),
-        var(--bg);
-      color: var(--ink);
-      font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
-      line-height: 1.55;
-    }
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #e9eef1 0, var(--bg) 360px);
+  color: var(--ink);
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  line-height: 1.55;
+}
 
-    a { color: inherit; text-decoration: none; }
+a { color: inherit; text-decoration: none; }
 
-    .topbar {
-      height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      width: min(1220px, calc(100% - 40px));
-      margin: 0 auto;
-    }
+.topbar {
+  width: min(1240px, calc(100% - 40px));
+  height: 74px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
 
-    .brand {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      font-weight: 800;
-      letter-spacing: 0;
-    }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+}
 
-    .brand-mark {
-      width: 36px;
-      height: 36px;
-      display: grid;
-      place-items: center;
-      background: var(--ink);
-      color: #fff;
-      border-radius: 8px;
-      font-size: 13px;
-    }
+.brand span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+}
 
-    .top-meta {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      gap: 8px 14px;
-      color: var(--muted);
-      font-size: 13px;
-    }
+nav {
+  display: flex;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
 
-    main {
-      width: min(1220px, calc(100% - 40px));
-      margin: 0 auto 58px;
-    }
+main {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto 58px;
+}
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 390px;
-      gap: 22px;
-      align-items: stretch;
-      padding: 24px 0 20px;
-    }
+.hero {
+  min-height: 460px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 430px;
+  gap: 20px;
+}
 
-    .hero-copy,
-    .radar-panel,
-    .stat,
-    .news-card,
-    .panel {
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(220, 227, 231, 0.9);
-      box-shadow: var(--shadow);
-      border-radius: 8px;
-    }
+.hero-copy,
+.hero-media,
+.section-cover,
+.analysis-panel,
+.news-card {
+  border: 1px solid rgba(220, 228, 232, .92);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
 
-    .hero-copy {
-      min-height: 310px;
-      padding: 34px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      background:
-        linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 42%),
-        linear-gradient(90deg, #fff, #f7fafb);
-      position: relative;
-      overflow: hidden;
-    }
+.hero-copy {
+  padding: 42px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, .12), transparent 40%),
+    linear-gradient(90deg, #fff, #f8fbfc);
+  overflow: hidden;
+  position: relative;
+}
 
-    .hero-copy::after {
-      content: "";
-      position: absolute;
-      right: 30px;
-      top: 30px;
-      width: 220px;
-      height: 220px;
-      border: 1px solid rgba(36, 90, 146, 0.22);
-      border-radius: 50%;
-      box-shadow: inset 0 0 0 28px rgba(15, 118, 110, 0.04), inset 0 0 0 70px rgba(183, 121, 31, 0.04);
-    }
+.hero-copy::after {
+  content: "";
+  position: absolute;
+  right: 36px;
+  top: 36px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  border: 1px solid rgba(40, 95, 149, .22);
+  box-shadow: inset 0 0 0 34px rgba(15, 118, 110, .05), inset 0 0 0 88px rgba(184, 121, 34, .05);
+}
 
-    .eyebrow {
-      margin: 0 0 10px;
-      color: var(--green);
-      font-size: 12px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0;
-    }
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
 
-    h1, h2, h3, p { margin: 0; }
+h1, h2, h3, p { margin: 0; }
 
-    h1 {
-      max-width: 680px;
-      font-size: clamp(44px, 7vw, 82px);
-      line-height: 0.98;
-      letter-spacing: 0;
-      position: relative;
-      z-index: 1;
-    }
+h1 {
+  max-width: 720px;
+  font-size: clamp(46px, 7vw, 82px);
+  line-height: .98;
+  letter-spacing: 0;
+  position: relative;
+  z-index: 1;
+}
 
-    .lead {
-      max-width: 720px;
-      margin-top: 18px;
-      color: var(--muted);
-      font-size: 17px;
-      position: relative;
-      z-index: 1;
-    }
+.hero-copy p:not(.eyebrow) {
+  max-width: 720px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 18px;
+  position: relative;
+  z-index: 1;
+}
 
-    .radar-panel {
-      padding: 22px;
-      min-height: 310px;
-      display: grid;
-      place-items: center;
-      background: #101820;
-      color: #fff;
-      overflow: hidden;
-    }
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+  position: relative;
+  z-index: 1;
+}
 
-    .radar-grid {
-      width: min(300px, 100%);
-      aspect-ratio: 1;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 50%;
-      position: relative;
-      background:
-        radial-gradient(circle, rgba(255, 255, 255, 0.16) 0 2px, transparent 3px),
-        radial-gradient(circle, transparent 0 30%, rgba(255,255,255,0.08) 31% 31.5%, transparent 32% 55%, rgba(255,255,255,0.08) 56% 56.5%, transparent 57%);
-      background-size: 28px 28px, 100% 100%;
-    }
+.hero-actions a {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
 
-    .radar-core {
-      position: absolute;
-      inset: 50% auto auto 50%;
-      transform: translate(-50%, -50%);
-      width: 112px;
-      height: 112px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      background: #fff;
-      color: var(--ink);
-      border-radius: 50%;
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
-    }
+.hero-actions a + a {
+  background: #eaf2f1;
+  color: var(--green);
+}
 
-    .radar-core strong { display: block; font-size: 34px; line-height: 1; }
-    .radar-core span { display: block; color: var(--muted); font-size: 12px; }
+.hero-media {
+  min-height: 460px;
+  overflow: hidden;
+  position: relative;
+  background: #111b22;
+}
 
-    .radar-chip {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform:
-        rotate(calc(var(--i) * 55deg))
-        translate(118px)
-        rotate(calc(var(--i) * -55deg));
-      transform-origin: 0 0;
-      padding: 6px 9px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 999px;
-      font-size: 12px;
-      white-space: nowrap;
-    }
+.hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .52;
+  filter: saturate(.92) contrast(.98);
+}
 
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-      margin-bottom: 24px;
-    }
+.hero-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 20%, rgba(8, 16, 20, .88));
+}
 
-    .stat {
-      padding: 18px;
-      min-height: 118px;
-    }
+.hero-media div {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 24px;
+  color: #fff;
+  z-index: 1;
+}
 
-    .stat span {
-      display: block;
-      color: var(--muted);
-      font-size: 13px;
-      margin-bottom: 8px;
-    }
+.hero-media strong {
+  display: block;
+  font-size: 64px;
+  line-height: 1;
+}
 
-    .stat strong {
-      display: block;
-      font-size: 30px;
-      line-height: 1.05;
-    }
+.hero-media span {
+  color: rgba(255,255,255,.78);
+}
 
-    .stat p {
-      color: var(--muted);
-      margin-top: 8px;
-      font-size: 13px;
-    }
+.section-covers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
 
-    .layout {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 340px;
-      gap: 22px;
-      align-items: start;
-    }
+.section-cover {
+  min-height: 148px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  text-align: left;
+  cursor: pointer;
+  color: #fff;
+  overflow: hidden;
+  position: relative;
+  border: 0;
+  font: inherit;
+}
 
-    .section-title {
-      margin-bottom: 12px;
-    }
+.section-cover::before,
+.card-cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(255,255,255,.35), transparent 20%),
+    linear-gradient(135deg, rgba(255,255,255,.16), transparent 46%);
+}
 
-    .section-title h2,
-    .panel h2 {
-      font-size: 24px;
-      line-height: 1.16;
-    }
+.section-cover span {
+  font-size: 22px;
+  font-weight: 800;
+  position: relative;
+}
 
-    .news-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-    }
+.section-cover small {
+  margin-top: 8px;
+  color: rgba(255,255,255,.78);
+  position: relative;
+}
 
-    .news-card {
-      min-height: 292px;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+.cover-platform { background: linear-gradient(135deg, #0f766e, #123f4a); }
+.cover-content { background: linear-gradient(135deg, #9d3f57, #3f2f76); }
+.cover-dtc { background: linear-gradient(135deg, #285f95, #16385c); }
+.cover-logistics { background: linear-gradient(135deg, #b87922, #4b4f36); }
+.cover-compliance { background: linear-gradient(135deg, #243241, #59616b); }
+.cover-consumer { background: linear-gradient(135deg, #4c7a53, #1e4f61); }
+.cover-global { background: linear-gradient(135deg, #172026, #0f766e); }
 
-    .card-top {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
+.analysis-panel {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border-left: 6px solid var(--green);
+}
 
-    .rank {
-      color: var(--muted);
-      font-weight: 800;
-      font-size: 13px;
-    }
+.analysis-panel h2,
+.section-head h2 {
+  font-size: 28px;
+  line-height: 1.15;
+}
 
-    .tag {
-      padding: 5px 9px;
-      background: #eaf5f3;
-      color: var(--green);
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-    }
+.analysis-panel ol {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--muted);
+}
 
-    .heat {
-      margin-left: auto;
-      color: var(--red);
-      font-size: 12px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
+.analysis-panel li + li { margin-top: 10px; }
 
-    .news-card h3 {
-      font-size: 18px;
-      line-height: 1.28;
-    }
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  margin-bottom: 14px;
+}
 
-    .news-card p {
-      color: var(--muted);
-      font-size: 14px;
-    }
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
-    .insight {
-      margin-top: auto;
-      padding-top: 12px;
-      border-top: 1px solid var(--line);
-      color: #31424b;
-      font-size: 14px;
-    }
+.filter {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
 
-    .card-bottom {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      color: var(--muted);
-      font-size: 12px;
-    }
+.filter.is-active {
+  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+}
 
-    .card-bottom a {
-      color: var(--blue);
-      font-weight: 800;
-    }
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
 
-    .side-column {
-      display: grid;
-      gap: 14px;
-      position: sticky;
-      top: 16px;
-    }
+.news-card {
+  min-height: 360px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 118px 1fr;
+}
 
-    .panel {
-      padding: 20px;
-    }
+.card-cover {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+  color: #fff;
+  overflow: hidden;
+}
 
-    .panel ol {
-      margin: 14px 0 0;
-      padding-left: 20px;
-      color: var(--muted);
-    }
+.card-cover span {
+  position: relative;
+  z-index: 1;
+  font-size: 28px;
+  font-weight: 900;
+}
 
-    .panel li + li {
-      margin-top: 10px;
-    }
+.card-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
-    .market-list {
-      display: grid;
-      gap: 0;
-      margin-top: 14px;
-    }
+.card-meta,
+.card-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
 
-    .market-list div {
-      display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      padding: 11px 0;
-      border-bottom: 1px solid var(--line);
-      font-size: 14px;
-    }
+.tag {
+  color: var(--green);
+  font-weight: 800;
+}
 
-    .market-list span {
-      color: var(--muted);
-      text-align: right;
-    }
+.news-card h3 {
+  font-size: 19px;
+  line-height: 1.28;
+}
 
-    footer {
-      width: min(1220px, calc(100% - 40px));
-      margin: 0 auto 36px;
-      color: var(--muted);
-      font-size: 13px;
-    }
+.news-card p {
+  color: var(--muted);
+  font-size: 14px;
+}
 
-    @media (max-width: 980px) {
-      .hero,
-      .layout {
-        grid-template-columns: 1fr;
-      }
+.insight {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: #31424b;
+  font-size: 14px;
+}
 
-      .stats,
-      .news-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
+.card-foot a {
+  color: var(--blue);
+  font-weight: 800;
+  white-space: nowrap;
+}
 
-      .side-column {
-        position: static;
-      }
-    }
+footer {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto 36px;
+  color: var(--muted);
+  font-size: 13px;
+}
 
-    @media (max-width: 640px) {
-      .topbar,
-      main,
-      footer {
-        width: min(100% - 28px, 1220px);
-      }
+@media (max-width: 960px) {
+  .hero,
+  .analysis-panel {
+    grid-template-columns: 1fr;
+  }
 
-      .topbar {
-        height: auto;
-        padding: 18px 0 8px;
-        align-items: flex-start;
-        flex-direction: column;
-      }
+  .hero-media {
+    min-height: 280px;
+  }
 
-      .hero-copy {
-        min-height: 300px;
-        padding: 24px;
-      }
+  .section-covers,
+  .news-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
 
-      h1 {
-        font-size: 44px;
-      }
+@media (max-width: 640px) {
+  .topbar,
+  main,
+  footer {
+    width: min(100% - 28px, 1240px);
+  }
 
-      .stats,
-      .news-grid {
-        grid-template-columns: 1fr;
-      }
+  .topbar {
+    height: auto;
+    padding: 18px 0 8px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-      .radar-chip {
-        transform:
-          rotate(calc(var(--i) * 55deg))
-          translate(100px)
-          rotate(calc(var(--i) * -55deg));
-      }
-    }
+  nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .hero-copy {
+    padding: 24px;
+    min-height: 420px;
+  }
+
+  h1 {
+    font-size: 42px;
+  }
+
+  .section-covers,
+  .news-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .filters {
+    justify-content: flex-start;
+  }
+}
 """
 
 
@@ -766,6 +849,7 @@ def main() -> None:
         items = fallback_items(today)
 
     PUBLIC.mkdir(exist_ok=True)
+    ensure_assets()
     (PUBLIC / "index.html").write_text(render_html(items, now), encoding="utf-8")
     (PUBLIC / ".nojekyll").write_text("", encoding="utf-8")
     (PUBLIC / "latest.json").write_text(
