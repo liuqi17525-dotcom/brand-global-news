@@ -7,356 +7,599 @@
   <style>
 
     :root {
-      --ink: #172126;
-      --muted: #63727a;
-      --line: #dce5e7;
-      --paper: #f6f8f7;
+      --bg: #f4f6f8;
       --panel: #ffffff;
-      --teal: #0b7c75;
-      --amber: #d78b22;
-      --red: #d24545;
-      --blue: #315f9b;
-      --shadow: 0 18px 45px rgba(22, 33, 38, 0.12);
+      --ink: #172026;
+      --muted: #63717a;
+      --line: #dce3e7;
+      --green: #0f766e;
+      --blue: #245a92;
+      --gold: #b7791f;
+      --red: #c24141;
+      --shadow: 0 14px 36px rgba(23, 32, 38, 0.08);
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      background: var(--paper);
+      background:
+        linear-gradient(180deg, #e9eef2 0, #f4f6f8 280px),
+        var(--bg);
       color: var(--ink);
-      font-family: "Inter", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+      font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
       line-height: 1.55;
     }
+
     a { color: inherit; text-decoration: none; }
-    .hero {
-      min-height: 72vh;
+
+    .topbar {
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      width: min(1220px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      letter-spacing: 0;
+    }
+
+    .brand-mark {
+      width: 36px;
+      height: 36px;
       display: grid;
-      align-items: end;
+      place-items: center;
+      background: var(--ink);
+      color: #fff;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    .top-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    main {
+      width: min(1220px, calc(100% - 40px));
+      margin: 0 auto 58px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 390px;
+      gap: 22px;
+      align-items: stretch;
+      padding: 24px 0 20px;
+    }
+
+    .hero-copy,
+    .radar-panel,
+    .stat,
+    .news-card,
+    .panel {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(220, 227, 231, 0.9);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+    }
+
+    .hero-copy {
+      min-height: 310px;
+      padding: 34px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      background:
+        linear-gradient(135deg, rgba(15, 118, 110, 0.12), transparent 42%),
+        linear-gradient(90deg, #fff, #f7fafb);
       position: relative;
       overflow: hidden;
-      color: #fff;
-      background: #111;
     }
-    .hero img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .hero::after {
+
+    .hero-copy::after {
       content: "";
       position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(90deg, rgba(8, 18, 22, 0.88), rgba(8, 18, 22, 0.36) 54%, rgba(8, 18, 22, 0.72)),
-        linear-gradient(0deg, rgba(8, 18, 22, 0.82), transparent 48%);
+      right: 30px;
+      top: 30px;
+      width: 220px;
+      height: 220px;
+      border: 1px solid rgba(36, 90, 146, 0.22);
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 28px rgba(15, 118, 110, 0.04), inset 0 0 0 70px rgba(183, 121, 31, 0.04);
     }
-    .hero-inner {
-      width: min(1180px, calc(100% - 40px));
-      margin: 0 auto;
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--green);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      max-width: 680px;
+      font-size: clamp(44px, 7vw, 82px);
+      line-height: 0.98;
+      letter-spacing: 0;
       position: relative;
       z-index: 1;
-      padding: 34px 0 54px;
     }
-    .date {
-      display: inline-flex;
-      gap: 10px;
-      align-items: center;
-      padding: 7px 11px;
-      border: 1px solid rgba(255, 255, 255, 0.32);
-      background: rgba(255, 255, 255, 0.08);
-      font-size: 14px;
-      letter-spacing: 0;
-    }
-    h1 {
-      max-width: 780px;
-      margin: 22px 0 16px;
-      font-size: clamp(42px, 7vw, 84px);
-      line-height: 0.96;
-      letter-spacing: 0;
-    }
+
     .lead {
       max-width: 720px;
-      margin: 0;
-      color: rgba(255, 255, 255, 0.82);
-      font-size: 18px;
-    }
-    .ticker {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 30px;
-    }
-    .ticker span {
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      background: rgba(255, 255, 255, 0.1);
-      padding: 8px 12px;
-      font-size: 13px;
-    }
-    main {
-      width: min(1180px, calc(100% - 40px));
-      margin: -26px auto 72px;
-      position: relative;
-      z-index: 2;
-    }
-    .summary {
-      display: grid;
-      grid-template-columns: 1.35fr 0.65fr;
-      gap: 18px;
-      margin-bottom: 22px;
-    }
-    .brief, .focus, .card, .action {
-      background: var(--panel);
-      box-shadow: var(--shadow);
-      border: 1px solid rgba(220, 229, 231, 0.9);
-    }
-    .brief, .focus { padding: 22px; }
-    .eyebrow {
-      color: var(--teal);
-      font-weight: 700;
-      font-size: 13px;
-      margin: 0 0 9px;
-    }
-    h2, h3 { letter-spacing: 0; line-height: 1.18; }
-    h2 { margin: 0 0 10px; font-size: 25px; }
-    h3 { margin: 0 0 10px; font-size: 18px; }
-    p { margin: 0; color: var(--muted); }
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
       margin-top: 18px;
+      color: var(--muted);
+      font-size: 17px;
+      position: relative;
+      z-index: 1;
     }
-    .metric {
-      border-left: 4px solid var(--teal);
-      background: #f3faf8;
-      padding: 12px;
-      min-height: 92px;
-    }
-    .metric:nth-child(2) { border-color: var(--amber); background: #fff8ee; }
-    .metric:nth-child(3) { border-color: var(--blue); background: #f3f6fb; }
-    .metric strong { display: block; font-size: 22px; margin-bottom: 4px; }
-    .focus ul { margin: 12px 0 0; padding-left: 18px; color: var(--muted); }
-    .content {
+
+    .radar-panel {
+      padding: 22px;
+      min-height: 310px;
       display: grid;
-      grid-template-columns: 1fr 320px;
+      place-items: center;
+      background: #101820;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    .radar-grid {
+      width: min(300px, 100%);
+      aspect-ratio: 1;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 50%;
+      position: relative;
+      background:
+        radial-gradient(circle, rgba(255, 255, 255, 0.16) 0 2px, transparent 3px),
+        radial-gradient(circle, transparent 0 30%, rgba(255,255,255,0.08) 31% 31.5%, transparent 32% 55%, rgba(255,255,255,0.08) 56% 56.5%, transparent 57%);
+      background-size: 28px 28px, 100% 100%;
+    }
+
+    .radar-core {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      transform: translate(-50%, -50%);
+      width: 112px;
+      height: 112px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background: #fff;
+      color: var(--ink);
+      border-radius: 50%;
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+    }
+
+    .radar-core strong { display: block; font-size: 34px; line-height: 1; }
+    .radar-core span { display: block; color: var(--muted); font-size: 12px; }
+
+    .radar-chip {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform:
+        rotate(calc(var(--i) * 55deg))
+        translate(118px)
+        rotate(calc(var(--i) * -55deg));
+      transform-origin: 0 0;
+      padding: 6px 9px;
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .stat {
+      padding: 18px;
+      min-height: 118px;
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 30px;
+      line-height: 1.05;
+    }
+
+    .stat p {
+      color: var(--muted);
+      margin-top: 8px;
+      font-size: 13px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 340px;
       gap: 22px;
       align-items: start;
     }
-    .cards {
+
+    .section-title {
+      margin-bottom: 12px;
+    }
+
+    .section-title h2,
+    .panel h2 {
+      font-size: 24px;
+      line-height: 1.16;
+    }
+
+    .news-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      gap: 14px;
     }
-    .card {
-      min-height: 280px;
-      padding: 19px;
+
+    .news-card {
+      min-height: 292px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
-      gap: 13px;
-      border-radius: 8px;
+      gap: 12px;
     }
-    .tag-row {
+
+    .card-top {
       display: flex;
-      justify-content: space-between;
       align-items: center;
       gap: 8px;
     }
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      padding: 5px 9px;
-      background: #eef6f4;
-      color: var(--teal);
-      font-size: 12px;
-      font-weight: 700;
-    }
-    .heat {
-      color: var(--red);
+
+    .rank {
+      color: var(--muted);
+      font-weight: 800;
       font-size: 13px;
-      font-weight: 700;
+    }
+
+    .tag {
+      padding: 5px 9px;
+      background: #eaf5f3;
+      color: var(--green);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .heat {
+      margin-left: auto;
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 800;
       white-space: nowrap;
     }
-    .card p { font-size: 14px; }
-    .meta { color: #809096; font-size: 12px; }
-    .insight {
-      margin-top: auto;
-      padding-top: 13px;
-      border-top: 1px solid var(--line);
-      color: #34454c;
+
+    .news-card h3 {
+      font-size: 18px;
+      line-height: 1.28;
+    }
+
+    .news-card p {
+      color: var(--muted);
       font-size: 14px;
     }
-    .source {
-      color: var(--blue);
-      font-size: 13px;
-      font-weight: 700;
+
+    .insight {
+      margin-top: auto;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: #31424b;
+      font-size: 14px;
     }
-    aside { display: grid; gap: 16px; }
-    .action { padding: 18px; border-radius: 8px; }
-    .action ol { margin: 10px 0 0; padding-left: 20px; color: var(--muted); }
-    .action li + li { margin-top: 10px; }
-    .market-list { display: grid; gap: 10px; margin-top: 12px; }
-    .market {
+
+    .card-bottom {
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      padding: 10px 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .card-bottom a {
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .side-column {
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: 16px;
+    }
+
+    .panel {
+      padding: 20px;
+    }
+
+    .panel ol {
+      margin: 14px 0 0;
+      padding-left: 20px;
+      color: var(--muted);
+    }
+
+    .panel li + li {
+      margin-top: 10px;
+    }
+
+    .market-list {
+      display: grid;
+      gap: 0;
+      margin-top: 14px;
+    }
+
+    .market-list div {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 11px 0;
       border-bottom: 1px solid var(--line);
       font-size: 14px;
     }
-    .market b { color: var(--ink); }
-    .market span { color: var(--muted); text-align: right; }
+
+    .market-list span {
+      color: var(--muted);
+      text-align: right;
+    }
+
     footer {
-      width: min(1180px, calc(100% - 40px));
+      width: min(1220px, calc(100% - 40px));
       margin: 0 auto 36px;
       color: var(--muted);
       font-size: 13px;
     }
-    @media (max-width: 900px) {
-      .summary, .content, .cards { grid-template-columns: 1fr; }
-      .metric-grid { grid-template-columns: 1fr; }
-      .hero { min-height: 78vh; }
+
+    @media (max-width: 980px) {
+      .hero,
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .stats,
+      .news-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .side-column {
+        position: static;
+      }
     }
-    @media (max-width: 560px) {
-      .hero-inner, main, footer { width: min(100% - 28px, 1180px); }
-      h1 { font-size: 42px; }
-      .lead { font-size: 16px; }
+
+    @media (max-width: 640px) {
+      .topbar,
+      main,
+      footer {
+        width: min(100% - 28px, 1220px);
+      }
+
+      .topbar {
+        height: auto;
+        padding: 18px 0 8px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hero-copy {
+        min-height: 300px;
+        padding: 24px;
+      }
+
+      h1 {
+        font-size: 44px;
+      }
+
+      .stats,
+      .news-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .radar-chip {
+        transform:
+          rotate(calc(var(--i) * 55deg))
+          translate(100px)
+          rotate(calc(var(--i) * -55deg));
+      }
     }
 
   </style>
 </head>
 <body>
-  <section class="hero">
-    <img src="assets/global-commerce-hero.png" alt="品牌出海全球商业热点横幅" />
-    <div class="hero-inner">
-      <div class="date">2026年7月6日 · 品牌出海热点速递</div>
-      <h1>全球增长信号正在重新排序</h1>
-      <p class="lead">每天自动聚合品牌出海、跨境电商、内容电商、独立站、平台政策、物流支付与合规变化，打开这个网址就能看到最新一版。</p>
-      <div class="ticker"><span>DTC 独立站</span><span>内容电商</span><span>合规政策</span><span>平台经营</span><span>物流支付</span></div>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="品牌出海热点速递首页">
+      <span class="brand-mark">BG</span>
+      <span>品牌出海热点速递</span>
+    </a>
+    <div class="top-meta">
+      <span>2026年7月6日</span>
+      <span>北京时间 09:00 自动更新</span>
     </div>
-  </section>
+  </header>
 
   <main>
-    <section class="summary">
-      <div class="brief">
-        <p class="eyebrow">今日总览</p>
-        <h2>今天抓取到 5 条高相关资讯，覆盖 5 个来源</h2>
-        <p>这份页面由自动任务生成。建议先看平台经营、内容电商和合规政策相关条目，再决定今天要复盘哪个市场、哪个渠道或哪个 SKU。</p>
-        <div class="metric-grid">
-          <div class="metric"><strong>5</strong><p>条核心热点，点击卡片来源可查看原文。</p></div>
-          <div class="metric"><strong>5</strong><p>个信息来源，降低只看单一平台带来的偏差。</p></div>
-          <div class="metric"><strong>09:00</strong><p>每天北京时间上午自动刷新。</p></div>
-        </div>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Global Brand Intelligence</p>
+        <h1>今天的出海信号</h1>
+        <p class="lead">聚合品牌出海、跨境电商、内容电商、DTC 独立站、物流支付与合规动态。少一点花哨，多一点能直接看懂的经营线索。</p>
       </div>
-      <div class="focus">
-        <p class="eyebrow">重点观察</p>
-        <h2>今天看什么</h2>
-        <ul>
-          <li>平台规则或工具变化是否影响现有店铺效率。</li>
-          <li>内容电商热点是否能转化为可复用素材和达人策略。</li>
-          <li>物流、支付、税务和合规是否改变利润结构。</li>
-          <li>海外消费者趋势是否提示新品或卖点调整。</li>
-        </ul>
+      <div class="radar-panel" aria-label="热点雷达">
+        <div class="radar-grid">
+          <div class="radar-core">
+            <strong>82</strong>
+            <span>平均热度</span>
+          </div>
+          <span class="radar-chip" style="--i:0">DTC 独立站</span><span class="radar-chip" style="--i:1">内容电商</span><span class="radar-chip" style="--i:2">合规政策</span><span class="radar-chip" style="--i:3">平台经营</span><span class="radar-chip" style="--i:4">物流支付</span>
+        </div>
       </div>
     </section>
 
-    <section class="content">
-      <div class="cards">
-        
-            <article class="card">
-              <div class="tag-row">
+    <section class="stats">
+      <div class="stat">
+        <span>热点</span>
+        <strong>5</strong>
+        <p>条高相关资讯</p>
+      </div>
+      <div class="stat">
+        <span>来源</span>
+        <strong>5</strong>
+        <p>个信息来源</p>
+      </div>
+      <div class="stat">
+        <span>更新</span>
+        <strong>09:00</strong>
+        <p>每天自动刷新</p>
+      </div>
+      <div class="stat">
+        <span>重点</span>
+        <strong>DTC 独立站</strong>
+        <p>今日高频主题</p>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="main-column">
+        <div class="section-title">
+          <p class="eyebrow">News Feed</p>
+          <h2>今日热点</h2>
+        </div>
+        <div class="news-grid">
+          
+            <article class="news-card">
+              <div class="card-top">
+                <span class="rank">01</span>
                 <span class="tag">平台经营</span>
-                <span class="heat">热度 86</span>
+                <span class="heat">热度 88</span>
               </div>
               <h3>平台全球化工具继续降低多市场经营门槛</h3>
-              <p>自动资讯源暂时不可用，先展示稳定观察项。上线后每日任务会重新抓取最新来源。</p>
-              <div class="meta">Amazon Global Selling · 2026-07-06</div>
-              <div class="insight">启示：用平台验证市场和价格带，同时把品牌资产、评价和数据沉淀下来。</div>
-              <a class="source" href="https://sell.amazon.com/global-selling" target="_blank" rel="noreferrer">查看来源</a>
+              <p>自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。</p>
+              <div class="insight">启示：用平台验证市场和价格带，同时把评价、品牌资产和用户反馈沉淀下来。</div>
+              <div class="card-bottom">
+                <span>Amazon Global Selling · 2026-07-06</span>
+                <a href="https://sell.amazon.com/global-selling" target="_blank" rel="noreferrer">来源</a>
+              </div>
             </article>
             
 
-            <article class="card">
-              <div class="tag-row">
+            <article class="news-card">
+              <div class="card-top">
+                <span class="rank">02</span>
                 <span class="tag">内容电商</span>
-                <span class="heat">热度 83</span>
+                <span class="heat">热度 85</span>
               </div>
               <h3>内容电商把种草、成交和履约压缩到同一链路</h3>
-              <p>自动资讯源暂时不可用，先展示稳定观察项。上线后每日任务会重新抓取最新来源。</p>
-              <div class="meta">TikTok Shop · 2026-07-06</div>
+              <p>自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。</p>
               <div class="insight">启示：把达人、素材、商品页和库存联动起来，避免只有流量没有稳定转化。</div>
-              <a class="source" href="https://seller.tiktok.com/" target="_blank" rel="noreferrer">查看来源</a>
+              <div class="card-bottom">
+                <span>TikTok Shop · 2026-07-06</span>
+                <a href="https://seller.tiktok.com/" target="_blank" rel="noreferrer">来源</a>
+              </div>
             </article>
             
 
-            <article class="card">
-              <div class="tag-row">
+            <article class="news-card">
+              <div class="card-top">
+                <span class="rank">03</span>
                 <span class="tag">DTC 独立站</span>
-                <span class="heat">热度 80</span>
+                <span class="heat">热度 82</span>
               </div>
               <h3>独立站经营重点转向复购、一方数据和本地化支付</h3>
-              <p>自动资讯源暂时不可用，先展示稳定观察项。上线后每日任务会重新抓取最新来源。</p>
-              <div class="meta">Shopify · 2026-07-06</div>
-              <div class="insight">启示：关注复购、支付体验和一方数据，别只用广告 ROAS 判断成败。</div>
-              <a class="source" href="https://www.shopify.com/research/commerce-trends" target="_blank" rel="noreferrer">查看来源</a>
+              <p>自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。</p>
+              <div class="insight">启示：关注复购、支付体验和一方数据，不要只用广告 ROAS 判断成败。</div>
+              <div class="card-bottom">
+                <span>Shopify · 2026-07-06</span>
+                <a href="https://www.shopify.com/research/commerce-trends" target="_blank" rel="noreferrer">来源</a>
+              </div>
             </article>
             
 
-            <article class="card">
-              <div class="tag-row">
+            <article class="news-card">
+              <div class="card-top">
+                <span class="rank">04</span>
                 <span class="tag">物流支付</span>
-                <span class="heat">热度 77</span>
+                <span class="heat">热度 79</span>
               </div>
               <h3>履约体验正在成为海外消费者评价品牌的关键</h3>
-              <p>自动资讯源暂时不可用，先展示稳定观察项。上线后每日任务会重新抓取最新来源。</p>
-              <div class="meta">DHL Insights · 2026-07-06</div>
+              <p>自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。</p>
               <div class="insight">启示：核心市场优先保障履约确定性，物流体验会直接影响评价和复购。</div>
-              <a class="source" href="https://www.dhl.com/global-en/home/insights-and-innovation.html" target="_blank" rel="noreferrer">查看来源</a>
+              <div class="card-bottom">
+                <span>DHL Insights · 2026-07-06</span>
+                <a href="https://www.dhl.com/global-en/home/insights-and-innovation.html" target="_blank" rel="noreferrer">来源</a>
+              </div>
             </article>
             
 
-            <article class="card">
-              <div class="tag-row">
+            <article class="news-card">
+              <div class="card-top">
+                <span class="rank">05</span>
                 <span class="tag">合规政策</span>
-                <span class="heat">热度 74</span>
+                <span class="heat">热度 76</span>
               </div>
               <h3>成熟市场的关税、数据和产品安全要求继续抬高门槛</h3>
-              <p>自动资讯源暂时不可用，先展示稳定观察项。上线后每日任务会重新抓取最新来源。</p>
-              <div class="meta">EU Access2Markets · 2026-07-06</div>
+              <p>自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。</p>
               <div class="insight">启示：把税务、认证、标签和隐私要求前置到选品与上市流程里。</div>
-              <a class="source" href="https://trade.ec.europa.eu/access-to-markets/en/home" target="_blank" rel="noreferrer">查看来源</a>
+              <div class="card-bottom">
+                <span>EU Access2Markets · 2026-07-06</span>
+                <a href="https://trade.ec.europa.eu/access-to-markets/en/home" target="_blank" rel="noreferrer">来源</a>
+              </div>
             </article>
             
+        </div>
       </div>
 
-      <aside>
-        <div class="action">
-          <p class="eyebrow">今日建议</p>
-          <h3>优先做这三件事</h3>
+      <aside class="side-column">
+        <section class="panel">
+          <p class="eyebrow">Action List</p>
+          <h2>今天先做三件事</h2>
           <ol>
             <li>挑一条与你品类最相关的资讯，拆出市场、渠道、价格和履约影响。</li>
             <li>检查主力 SKU 的商品页、评论痛点和本地化支付是否匹配目标市场。</li>
-            <li>把今天看到的内容信号转成 3 条可测试短视频或广告素材角度。</li>
+            <li>把今天的内容信号转成 3 条短视频、广告或邮件素材角度。</li>
           </ol>
-        </div>
+        </section>
 
-        <div class="action">
-          <p class="eyebrow">市场雷达</p>
-          <h3>长期盯住的方向</h3>
+        <section class="panel">
+          <p class="eyebrow">Market Watch</p>
+          <h2>市场雷达</h2>
           <div class="market-list">
-            <div class="market"><b>美国</b><span>平台竞争强，品牌信任关键</span></div>
-            <div class="market"><b>欧洲</b><span>合规复杂，客单与品质更重要</span></div>
-            <div class="market"><b>东南亚</b><span>内容电商快，价格敏感</span></div>
-            <div class="market"><b>中东</b><span>增长快，本地履约要求高</span></div>
+            <div><b>美国</b><span>平台竞争强，品牌信任关键</span></div>
+            <div><b>欧洲</b><span>合规复杂，品质与认证更重要</span></div>
+            <div><b>东南亚</b><span>内容电商快，价格敏感</span></div>
+            <div><b>中东</b><span>增长快，本地履约要求高</span></div>
           </div>
-        </div>
+        </section>
       </aside>
     </section>
   </main>
 
   <footer>
-    最后更新：2026-07-06 14:17 Asia/Shanghai。页面仅展示摘要与链接，不转载全文。
+    最后更新：2026-07-06 14:56 Asia/Shanghai。页面仅展示摘要与来源链接，不转载全文。
   </footer>
 </body>
 </html>
