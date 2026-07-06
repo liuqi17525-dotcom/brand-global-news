@@ -6,16 +6,18 @@
     "published": "2026-07-06",
     "summary": "自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
     "category": "平台经营",
-    "heat": 90
+    "heat": 92,
+    "fallback": true
   },
   {
     "title": "内容电商把种草、成交和履约压缩到同一链路",
-    "link": "https://seller.tiktok.com/",
-    "source": "TikTok Shop",
+    "link": "https://seller.tiktokglobalshop.com/university",
+    "source": "TikTok Shop Academy",
     "published": "2026-07-06",
     "summary": "自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
     "category": "内容电商",
-    "heat": 87
+    "heat": 89,
+    "fallback": true
   },
   {
     "title": "独立站经营重点转向复购、一方数据和本地化支付",
@@ -24,7 +26,18 @@
     "published": "2026-07-06",
     "summary": "自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
     "category": "DTC 独立站",
-    "heat": 84
+    "heat": 86,
+    "fallback": true
+  },
+  {
+    "title": "品牌出海从铺渠道转向经营长期信任资产",
+    "link": "https://www.shopify.com/research/commerce-trends",
+    "source": "Shopify",
+    "published": "2026-07-06",
+    "summary": "自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
+    "category": "品牌出海",
+    "heat": 83,
+    "fallback": true
   },
   {
     "title": "履约体验正在成为海外消费者评价品牌的关键",
@@ -33,7 +46,8 @@
     "published": "2026-07-06",
     "summary": "自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
     "category": "物流支付",
-    "heat": 81
+    "heat": 80,
+    "fallback": true
   },
   {
     "title": "成熟市场的关税、数据和产品安全要求继续抬高门槛",
@@ -42,6 +56,7 @@
     "published": "2026-07-06",
     "summary": "自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
     "category": "合规政策",
-    "heat": 78
+    "heat": 77,
+    "fallback": true
   }
 ]

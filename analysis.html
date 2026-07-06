@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>今日分析 · 品牌出海热点速递</title>
+  <style>
+:root {
+  --bg: #f5f7f8;
+  --ink: #172026;
+  --muted: #64727a;
+  --panel: #ffffff;
+  --line: #dce4e8;
+  --green: #0f766e;
+  --blue: #285f95;
+  --shadow: 0 18px 46px rgba(18, 30, 38, .1);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #e9eef1 0, var(--bg) 360px);
+  color: var(--ink);
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  line-height: 1.55;
+}
+
+a { color: inherit; text-decoration: none; }
+
+.topbar {
+  width: min(1240px, calc(100% - 40px));
+  min-height: 74px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+}
+
+.brand span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 12px;
+}
+
+nav { display: flex; gap: 16px; color: var(--muted); font-size: 14px; }
+
+main {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto 58px;
+}
+
+.hero {
+  min-height: 560px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  border: 1px solid rgba(220, 228, 232, .92);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  background: #111b22;
+}
+
+.hero > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(8, 16, 20, .88), rgba(8, 16, 20, .42) 48%, rgba(8, 16, 20, .76)),
+    linear-gradient(0deg, rgba(8, 16, 20, .82), transparent 56%);
+}
+
+.data-band,
+.module-card,
+.analysis-panel,
+.news-card {
+  border: 1px solid rgba(220, 228, 232, .92);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.hero-copy {
+  width: min(760px, calc(100% - 48px));
+  padding: 0 0 44px 44px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 1;
+  color: #fff;
+}
+
+.hero-copy::after {
+  content: none;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1, h2, h3, p { margin: 0; }
+
+h1 {
+  max-width: 720px;
+  font-size: clamp(48px, 7vw, 86px);
+  line-height: .98;
+  letter-spacing: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-copy p:not(.eyebrow) {
+  max-width: 720px;
+  margin-top: 18px;
+  color: rgba(255,255,255,.82);
+  font-size: 18px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.hero-actions a {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.hero-actions a + a {
+  background: rgba(255,255,255,.12);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.24);
+}
+
+.data-band > img,
+.module-card img,
+.news-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.data-band {
+  min-height: 190px;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr) 240px;
+  gap: 0;
+  margin: 20px 0;
+}
+
+.data-band > img { min-height: 190px; filter: saturate(.9) contrast(.95); }
+
+.data-copy {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.data-copy h2,
+.section-head h2,
+.analysis-panel h2 {
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.data-copy p:not(.eyebrow) {
+  margin-top: 10px;
+  color: var(--muted);
+}
+
+.data-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border-left: 1px solid var(--line);
+}
+
+.data-stats div {
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid var(--line);
+}
+
+.data-stats strong { font-size: 30px; line-height: 1; }
+.data-stats span { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+.section-head { margin: 28px 0 14px; }
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.module-card {
+  min-height: 220px;
+  display: grid;
+  grid-template-rows: 110px 1fr;
+}
+
+.module-card img { filter: brightness(.78) saturate(.9); }
+
+.module-card div { padding: 16px; }
+.module-card span { color: var(--green); font-size: 12px; font-weight: 800; }
+.module-card h3 { margin-top: 6px; font-size: 20px; }
+.module-card p { margin-top: 8px; color: var(--muted); font-size: 13px; }
+
+.analysis-panel {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 24px;
+  padding: 24px;
+  margin: 24px 0;
+  border-left: 6px solid var(--green);
+}
+
+.analysis-panel ol { margin: 0; padding-left: 22px; color: var(--muted); }
+.analysis-panel li + li { margin-top: 10px; }
+
+.analysis-teaser {
+  color: var(--muted);
+}
+
+.analysis-teaser a {
+  display: inline-flex;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.analysis-page {
+  max-width: 980px;
+}
+
+.analysis-hero,
+.analysis-long {
+  border: 1px solid rgba(220, 228, 232, .92);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.analysis-hero {
+  padding: 42px;
+  margin-bottom: 20px;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, .12), transparent 42%),
+    #fff;
+}
+
+.analysis-hero h1 {
+  max-width: 780px;
+}
+
+.analysis-hero p:not(.eyebrow) {
+  max-width: 760px;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.analysis-long {
+  padding: 28px;
+  margin-bottom: 18px;
+}
+
+.analysis-long h2 {
+  font-size: 28px;
+  line-height: 1.15;
+  margin-bottom: 14px;
+}
+
+.analysis-long p {
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.analysis-long p + p {
+  margin-top: 14px;
+}
+
+.analysis-long ol {
+  margin: 0;
+  padding-left: 22px;
+  color: var(--muted);
+}
+
+.analysis-long li + li {
+  margin-top: 10px;
+}
+
+.analysis-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analysis-grid div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #f9fbfb;
+}
+
+.analysis-grid strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.analysis-grid p {
+  font-size: 14px;
+}
+
+.analysis-sources {
+  display: grid;
+  gap: 12px;
+}
+
+.analysis-source {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.analysis-source span {
+  color: var(--green);
+  font-weight: 900;
+}
+
+.analysis-source h3 {
+  font-size: 18px;
+  line-height: 1.28;
+}
+
+.analysis-source p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.analysis-source a {
+  display: inline-flex;
+  margin-top: 10px;
+  color: var(--blue);
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.news-card {
+  min-height: 388px;
+  display: grid;
+  grid-template-rows: 138px 1fr;
+}
+
+.news-card > img { filter: brightness(.78) saturate(.92); }
+
+.card-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card-meta,
+.card-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.news-card h3 { font-size: 19px; line-height: 1.28; }
+.news-card p { color: var(--muted); font-size: 14px; }
+
+.insight {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  color: #31424b;
+  font-size: 14px;
+}
+
+.card-foot a { color: var(--blue); font-weight: 800; white-space: nowrap; }
+
+footer {
+  width: min(1240px, calc(100% - 40px));
+  margin: 0 auto 36px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 1020px) {
+  .hero,
+  .data-band,
+  .analysis-panel { grid-template-columns: 1fr; }
+  .data-stats { border-left: 0; border-top: 1px solid var(--line); }
+  .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 680px) {
+  .topbar,
+  main,
+  footer { width: min(100% - 28px, 1240px); }
+  .topbar { padding: 18px 0 8px; align-items: flex-start; flex-direction: column; }
+  nav { width: 100%; justify-content: space-between; }
+  .hero-copy { padding: 24px; min-height: 420px; }
+  h1 { font-size: 42px; }
+  .data-stats,
+  .module-grid,
+  .news-grid,
+  .analysis-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
+    <nav>
+      <a href="./">首页</a>
+      <a href="#summary">综合判断</a>
+    </nav>
+  </header>
+
+  <main class="analysis-page">
+    <section class="analysis-hero">
+      <p class="eyebrow">2026年7月6日 · 今日分析</p>
+      <h1>今天的资讯说明了什么</h1>
+      <p>这不是资讯复述，而是把今天抓到的 6 条热点和 5 个来源合在一起，判断它们共同指向的出海经营变化。</p>
+    </section>
+
+    <section class="analysis-long" id="summary">
+      <h2>综合判断</h2>
+      <p>今天的资讯重心集中在「平台经营」和「内容电商」。这说明品牌出海已经不是单纯找一个新渠道、投一波广告的问题，而是要同时处理平台效率、内容转化、履约体验和本地合规之间的关系。</p>
+      <p>如果把这些信息放在经营视角里看，最重要的变化是：品牌需要从“单点爆发”转向“系统经营”。平台能带来早期确定性，内容电商能带来发现和转化，独立站能沉淀用户资产，但这些链路只有在履约和合规跟得上的情况下，才会形成稳定增长。</p>
+      <p>今天更值得关注的不是某一条新闻本身，而是它们共同指向的经营压力：流量越来越碎，平台规则越来越细，消费者对交付和信任的要求越来越高。品牌要做的不是追每一个热点，而是判断哪些变化会影响自己的选品、价格、内容和供应链。</p>
+      <p>对你来说，比较实际的读法是：先看今天哪些信息会改变“增长假设”。如果热点主要集中在平台经营，说明短期要关注规则、流量入口和店铺效率；如果集中在内容电商，说明素材、达人和商品页承接会更重要；如果物流、支付和合规信号变多，就意味着成本和风险可能比流量机会更先影响利润。</p>
+      <p>所以这份日报真正要回答的不是“今天发生了什么”，而是“今天哪些变化可能让原来的出海打法失效”。当多个来源同时指向同一个方向时，它就不只是新闻，而是需要进入你的选品、市场和渠道判断里的经营信号。</p>
+    </section>
+  </main>
+
+  <footer>
+    最后更新：2026-07-06 18:05 Asia/Shanghai。季度最后一天自动切换为季度总结；12月31日自动切换为年终总结。
+  </footer>
+</body>
+</html>
