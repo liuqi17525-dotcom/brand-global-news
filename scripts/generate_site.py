@@ -16,8 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 ASSETS = PUBLIC / "assets"
 TIMEZONE = timezone(timedelta(hours=8))
-MAX_ITEMS = 10
-MAX_ITEM_AGE_DAYS = 21
+ITEMS_PER_CATEGORY = 1
 MIN_RELEVANCE_SCORE = 2
 
 CATEGORIES = [
@@ -30,13 +29,18 @@ CATEGORIES = [
 ]
 
 QUERIES = [
-    "品牌出海 跨境电商 最新",
-    "中国品牌 出海 海外市场",
-    "跨境电商 平台 运营 最新",
+    "跨境电商 平台运营 最新",
+    "Amazon Global Selling seller update brand latest",
     "TikTok Shop 跨境电商 品牌 最新",
-    "Amazon Global Selling seller update brand",
-    "DTC brand global expansion ecommerce",
-    "cross-border ecommerce China brands logistics compliance",
+    "内容电商 品牌出海 最新",
+    "DTC 独立站 品牌出海 最新",
+    "Shopify DTC brand global expansion latest",
+    "跨境电商 物流 履约 支付 最新",
+    "cross-border ecommerce logistics fulfillment payment latest",
+    "品牌出海 合规 关税 监管 最新",
+    "cross-border ecommerce compliance tariff regulation latest",
+    "海外消费者 趋势 品牌出海 最新",
+    "global consumer trends ecommerce brand latest",
 ]
 
 CATEGORY_KEYWORDS = [
@@ -184,15 +188,15 @@ def relevance_score(item: Item) -> int:
 
 
 def is_recent(item: Item, now: datetime) -> bool:
-    try:
-        published = datetime.strptime(item.published, "%Y-%m-%d").replace(tzinfo=TIMEZONE)
-    except ValueError:
-        return True
-    return published >= now - timedelta(days=MAX_ITEM_AGE_DAYS)
+    return item.published == now.strftime("%Y-%m-%d")
 
 
 def is_relevant(item: Item, now: datetime) -> bool:
     return relevance_score(item) >= MIN_RELEVANCE_SCORE and is_recent(item, now)
+
+
+def published_sort_value(item: Item) -> str:
+    return item.published or "0000-00-00"
 
 
 def heat_for(title: str, summary: str, index: int) -> int:
@@ -257,8 +261,17 @@ def collect_items() -> list[Item]:
                     collected.append(item)
         except Exception as exc:
             print(f"warn: failed query {query}: {exc}", file=sys.stderr)
-    collected.sort(key=lambda item: (item.heat, item.published), reverse=True)
-    return collected[:MAX_ITEMS]
+
+    selected: list[Item] = []
+    for category in CATEGORIES:
+        candidates = [item for item in collected if item.category == category]
+        candidates.sort(
+            key=lambda item: (published_sort_value(item), relevance_score(item), item.heat),
+            reverse=True,
+        )
+        selected.extend(candidates[:ITEMS_PER_CATEGORY])
+
+    return selected
 
 
 def fallback_items(today: str) -> list[Item]:
@@ -329,6 +342,60 @@ def analysis_points(items: list[Item], now: datetime) -> list[str]:
         f"「{second}」也值得跟进，它往往决定流量能不能转成稳定订单和可复购用户。",
         "建议把资讯拆成三个动作：调整选品假设、验证渠道效率、检查履约与合规成本。",
     ]
+
+
+def keyword_hits(items: list[Item]) -> list[str]:
+    groups = [
+        ("平台规则", ["amazon", "temu", "shein", "marketplace", "seller", "平台", "卖家", "规则"]),
+        ("内容转化", ["tiktok", "creator", "live", "short video", "达人", "直播", "短视频", "内容"]),
+        ("独立站资产", ["shopify", "dtc", "独立站", "direct-to-consumer", "brand site"]),
+        ("履约成本", ["logistics", "shipping", "fulfillment", "物流", "履约", "配送"]),
+        ("合规门槛", ["tariff", "compliance", "regulation", "privacy", "关税", "合规", "监管", "税"]),
+        ("海外需求", ["consumer", "trend", "demand", "消费者", "趋势", "需求", "本地化"]),
+    ]
+    text = " ".join(f"{item.title} {item.summary}" for item in items).lower()
+    scored = []
+    for label, words in groups:
+        score = sum(text.count(word.lower()) for word in words)
+        if score:
+            scored.append((label, score))
+    scored.sort(key=lambda pair: pair[1], reverse=True)
+    return [label for label, _ in scored[:3]]
+
+
+def sample_titles(items: list[Item], limit: int = 3) -> str:
+    titles = [f"《{item.title}》" for item in items[:limit]]
+    if not titles:
+        return "今天没有抓到足够稳定的真实资讯"
+    return "、".join(titles)
+
+
+def dynamic_analysis_paragraphs(items: list[Item], now: datetime) -> list[str]:
+    counts = category_counts(items)
+    ordered = [(category, count) for category, count in sorted(counts.items(), key=lambda pair: pair[1], reverse=True) if count]
+    top = ordered[0][0] if ordered else "品牌出海"
+    second = ordered[1][0] if len(ordered) > 1 else None
+    source_count = len({item.source for item in items})
+    signals = keyword_hits(items)
+    signal_text = "、".join(signals) if signals else f"{top}相关变化"
+    examples = sample_titles(items)
+    mode, _ = summary_mode(now)
+    period = "本期" if mode != "今日分析" else "今天"
+
+    category_text = f"「{top}」"
+    if second:
+        category_text += f"和「{second}」"
+
+    return [
+        f"{period}抓到的 {len(items)} 条资讯来自 {source_count} 个来源，信息重心落在{category_text}。这说明今天更值得看的不是单条新闻的热闹程度，而是这些内容共同暴露出的经营侧重点：{signal_text}正在影响品牌出海的判断顺序。",
+        f"从标题层面看，代表性线索包括{examples}。这些内容如果分开看只是新闻，但放在一起看，会指向同一个问题：品牌不能只判断某个平台有没有流量，还要判断这条增长路径能不能被内容、转化、履约和合规同时支撑。",
+        f"如果{top}占比最高，说明短期要先检查这一环节有没有改变原来的增长假设。比如平台类信号多，就看规则、流量入口和店铺效率；内容类信号多，就看素材、达人、商品页和库存承接；履约或合规信号变多，则要先算成本、时效和风险，再决定是否加大投放。",
+        f"因此，今天这份日报的读法不是追热点，而是把热点当成经营预警。你可以先标记哪些信息会影响选品、定价、渠道和供应链，再决定要不要进入下一步验证。对品牌出海来说，有用的资讯不是最多的资讯，而是能改变决策优先级的资讯。",
+    ]
+
+
+def render_analysis_paragraphs(items: list[Item], now: datetime) -> str:
+    return "\n".join(f"      <p>{html.escape(paragraph)}</p>" for paragraph in dynamic_analysis_paragraphs(items, now))
 
 
 def cover_for(category: str) -> str:
@@ -403,11 +470,8 @@ def render_analysis_html(items: list[Item], now: datetime) -> str:
     today = fmt_date(now)
     machine_date = now.strftime("%Y-%m-%d %H:%M")
     mode, analysis_title = summary_mode(now)
-    counts = category_counts(items)
-    ordered = sorted(counts.items(), key=lambda pair: pair[1], reverse=True)
-    top = ordered[0][0] if ordered else "品牌出海"
-    second = ordered[1][0] if len(ordered) > 1 else "内容电商"
     source_count = len({item.source for item in items})
+    analysis_body = render_analysis_paragraphs(items, now)
 
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -435,11 +499,7 @@ def render_analysis_html(items: list[Item], now: datetime) -> str:
 
     <section class="analysis-long" id="summary">
       <h2>综合判断</h2>
-      <p>今天的资讯重心集中在「{html.escape(top)}」和「{html.escape(second)}」。这说明品牌出海已经不是单纯找一个新渠道、投一波广告的问题，而是要同时处理平台效率、内容转化、履约体验和本地合规之间的关系。</p>
-      <p>如果把这些信息放在经营视角里看，最重要的变化是：品牌需要从“单点爆发”转向“系统经营”。平台能带来早期确定性，内容电商能带来发现和转化，独立站能沉淀用户资产，但这些链路只有在履约和合规跟得上的情况下，才会形成稳定增长。</p>
-      <p>今天更值得关注的不是某一条新闻本身，而是它们共同指向的经营压力：流量越来越碎，平台规则越来越细，消费者对交付和信任的要求越来越高。品牌要做的不是追每一个热点，而是判断哪些变化会影响自己的选品、价格、内容和供应链。</p>
-      <p>对你来说，比较实际的读法是：先看今天哪些信息会改变“增长假设”。如果热点主要集中在平台经营，说明短期要关注规则、流量入口和店铺效率；如果集中在内容电商，说明素材、达人和商品页承接会更重要；如果物流、支付和合规信号变多，就意味着成本和风险可能比流量机会更先影响利润。</p>
-      <p>所以这份日报真正要回答的不是“今天发生了什么”，而是“今天哪些变化可能让原来的出海打法失效”。当多个来源同时指向同一个方向时，它就不只是新闻，而是需要进入你的选品、市场和渠道判断里的经营信号。</p>
+{analysis_body}
     </section>
   </main>
 
