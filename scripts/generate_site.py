@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 ASSETS = PUBLIC / "assets"
 TIMEZONE = timezone(timedelta(hours=8))
+MAX_ITEMS = 10
+MAX_ITEM_AGE_DAYS = 21
+MIN_RELEVANCE_SCORE = 2
 
 CATEGORIES = [
     "平台经营",
@@ -28,11 +31,12 @@ CATEGORIES = [
 
 QUERIES = [
     "品牌出海 跨境电商 最新",
-    "中国品牌出海 DTC 独立站",
-    "TikTok Shop 跨境电商 品牌",
-    "Amazon Global Selling seller update",
-    "cross border ecommerce China brands global",
-    "DTC ecommerce global expansion logistics compliance",
+    "中国品牌 出海 海外市场",
+    "跨境电商 平台 运营 最新",
+    "TikTok Shop 跨境电商 品牌 最新",
+    "Amazon Global Selling seller update brand",
+    "DTC brand global expansion ecommerce",
+    "cross-border ecommerce China brands logistics compliance",
 ]
 
 CATEGORY_KEYWORDS = [
@@ -42,6 +46,60 @@ CATEGORY_KEYWORDS = [
     ("物流支付", ["logistics", "shipping", "fulfillment", "payment", "物流", "支付", "履约"]),
     ("合规政策", ["tariff", "compliance", "regulation", "privacy", "关税", "合规", "监管", "税"]),
     ("消费趋势", ["consumer", "trend", "demand", "消费者", "趋势", "需求"]),
+]
+
+RELEVANCE_KEYWORDS = [
+    "品牌出海",
+    "出海",
+    "跨境",
+    "跨境电商",
+    "海外",
+    "全球化",
+    "amazon",
+    "temu",
+    "shein",
+    "tiktok shop",
+    "shopify",
+    "dtc",
+    "direct-to-consumer",
+    "cross border",
+    "cross-border",
+    "global selling",
+    "global expansion",
+    "ecommerce",
+    "marketplace",
+    "seller",
+    "logistics",
+    "fulfillment",
+    "compliance",
+    "tariff",
+    "consumer",
+]
+
+HIGH_VALUE_KEYWORDS = [
+    "品牌出海",
+    "跨境电商",
+    "中国品牌",
+    "tiktok shop",
+    "amazon global selling",
+    "global selling",
+    "cross-border",
+    "cross border",
+    "global expansion",
+    "dtc",
+    "direct-to-consumer",
+]
+
+NOISE_KEYWORDS = [
+    "stock",
+    "shares",
+    "earnings",
+    "股价",
+    "财报",
+    "招聘",
+    "job",
+    "coupon",
+    "优惠券",
 ]
 
 CATEGORY_COVERS = {
@@ -112,7 +170,29 @@ def category_for(title: str, summary: str) -> str:
     for category, words in CATEGORY_KEYWORDS:
         if any(word.lower() in text for word in words):
             return category
-    return "品牌出海"
+    return "消费趋势"
+
+
+def relevance_score(item: Item) -> int:
+    text = f"{item.title} {item.summary} {item.source}".lower()
+    if any(keyword.lower() in text for keyword in NOISE_KEYWORDS):
+        return 0
+    score = sum(1 for keyword in RELEVANCE_KEYWORDS if keyword.lower() in text)
+    score += sum(2 for keyword in HIGH_VALUE_KEYWORDS if keyword.lower() in text)
+    score += 1 if item.category in CATEGORIES else 0
+    return score
+
+
+def is_recent(item: Item, now: datetime) -> bool:
+    try:
+        published = datetime.strptime(item.published, "%Y-%m-%d").replace(tzinfo=TIMEZONE)
+    except ValueError:
+        return True
+    return published >= now - timedelta(days=MAX_ITEM_AGE_DAYS)
+
+
+def is_relevant(item: Item, now: datetime) -> bool:
+    return relevance_score(item) >= MIN_RELEVANCE_SCORE and is_recent(item, now)
 
 
 def heat_for(title: str, summary: str, index: int) -> int:
@@ -142,7 +222,7 @@ def fetch_google_news(query: str) -> list[Item]:
     data = fetch_url(url)
     root = ET.fromstring(data)
     items: list[Item] = []
-    for index, node in enumerate(root.findall("./channel/item")[:8]):
+    for index, node in enumerate(root.findall("./channel/item")):
         title = strip_tags(node.findtext("title") or "")
         link = normalize_link(strip_tags(node.findtext("link") or ""))
         summary = strip_tags(node.findtext("description") or "")
@@ -165,19 +245,20 @@ def fetch_google_news(query: str) -> list[Item]:
 
 
 def collect_items() -> list[Item]:
+    now = datetime.now(TIMEZONE)
     seen: set[str] = set()
     collected: list[Item] = []
     for query in QUERIES:
         try:
             for item in fetch_google_news(query):
                 key = re.sub(r"\W+", "", item.title.lower())[:90]
-                if key and key not in seen:
+                if key and key not in seen and is_relevant(item, now):
                     seen.add(key)
                     collected.append(item)
         except Exception as exc:
             print(f"warn: failed query {query}: {exc}", file=sys.stderr)
     collected.sort(key=lambda item: (item.heat, item.published), reverse=True)
-    return collected[:8]
+    return collected[:MAX_ITEMS]
 
 
 def fallback_items(today: str) -> list[Item]:
@@ -409,7 +490,7 @@ def render_html(items: list[Item], now: datetime) -> str:
     </section>
 
     <section class="data-band">
-      <img src="assets/hotspots-data-cover.png" alt="8条热点数据封面" />
+      <img src="assets/hotspots-data-cover.png" alt="热点数据封面" />
       <div class="data-copy">
         <p class="eyebrow">Daily Signal</p>
         <h2>{len(items)} 条热点，{source_count} 个来源</h2>
