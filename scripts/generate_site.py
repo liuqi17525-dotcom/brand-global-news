@@ -564,7 +564,6 @@ def render_html(items: list[Item], now: datetime) -> str:
     today = fmt_date(now)
     machine_date = now.strftime("%Y-%m-%d %H:%M")
     source_count = len({item.source for item in items})
-    mode, analysis_title = summary_mode(now)
     top_title = items[0].title if items else "今日暂无可用资讯"
 
     return f"""<!doctype html>
@@ -580,7 +579,6 @@ def render_html(items: list[Item], now: datetime) -> str:
     <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
     <nav>
       <a href="#modules">模块</a>
-      <a href="analysis.html">分析</a>
       <a href="#news">热点</a>
     </nav>
   </header>
@@ -591,10 +589,7 @@ def render_html(items: list[Item], now: datetime) -> str:
       <div class="hero-copy">
         <p class="eyebrow">{today} · Global Brand Intelligence</p>
         <h1>出海热点</h1>
-        <p>今日值得知道的品牌出海资讯与综合判断。</p>
-        <div class="hero-actions">
-          <a href="analysis.html">查看综合分析</a>
-        </div>
+        <p>今日值得知道的品牌出海资讯。</p>
       </div>
     </section>
 
@@ -1114,7 +1109,6 @@ def main() -> None:
     PUBLIC.mkdir(exist_ok=True)
     ensure_assets()
     (PUBLIC / "index.html").write_text(render_html(items, now), encoding="utf-8")
-    (PUBLIC / "analysis.html").write_text(render_analysis_html(items, now), encoding="utf-8")
     (PUBLIC / ".nojekyll").write_text("", encoding="utf-8")
     (PUBLIC / "latest.json").write_text(
         json.dumps([item.__dict__ for item in items], ensure_ascii=False, indent=2),
