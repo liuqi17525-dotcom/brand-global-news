@@ -370,6 +370,29 @@ def sample_titles(items: list[Item], limit: int = 3) -> str:
     return "、".join(titles)
 
 
+def category_read(category: str) -> str:
+    mapping = {
+        "平台经营": "它影响的是平台规则、流量入口、店铺效率和平台侧经营成本。",
+        "内容电商": "它影响的是内容种草、达人合作、直播短视频转化和商品页承接。",
+        "DTC 独立站": "它影响的是自有站转化、复购、一方数据和品牌资产沉淀。",
+        "物流支付": "它影响的是履约时效、支付体验、退换货成本和用户评价。",
+        "合规政策": "它影响的是关税、认证、隐私、产品安全和上市风险。",
+        "消费趋势": "它影响的是海外用户需求、本地化表达、价格敏感度和购买理由。",
+    }
+    return mapping.get(category, "它影响的是品牌出海的市场选择、渠道组合和长期经营确定性。")
+
+
+def source_read(item: Item) -> str:
+    if item.fallback:
+        return "这条是备用观察项，只能作为方向提醒，不能当成当天新闻结论。"
+    return f"来源是「{item.source}」，需要点开原文判断它是事实变化、平台公告，还是媒体观察。"
+
+
+def item_analysis(item: Item, index: int) -> str:
+    title = item.title.replace(" - ", "，来自")
+    return f"{index:02d}｜{item.category}：{title}。{category_read(item.category)}{source_read(item)}"
+
+
 def dynamic_analysis_paragraphs(items: list[Item], now: datetime) -> list[str]:
     counts = category_counts(items)
     ordered = [(category, count) for category, count in sorted(counts.items(), key=lambda pair: pair[1], reverse=True) if count]
@@ -391,6 +414,32 @@ def dynamic_analysis_paragraphs(items: list[Item], now: datetime) -> list[str]:
         f"从标题层面看，代表性线索包括{examples}。这些内容如果分开看只是新闻，但放在一起看，会指向同一个问题：品牌不能只判断某个平台有没有流量，还要判断这条增长路径能不能被内容、转化、履约和合规同时支撑。",
         f"如果{top}占比最高，说明短期要先检查这一环节有没有改变原来的增长假设。比如平台类信号多，就看规则、流量入口和店铺效率；内容类信号多，就看素材、达人、商品页和库存承接；履约或合规信号变多，则要先算成本、时效和风险，再决定是否加大投放。",
         f"因此，今天这份日报的读法不是追热点，而是把热点当成经营预警。你可以先标记哪些信息会影响选品、定价、渠道和供应链，再决定要不要进入下一步验证。对品牌出海来说，有用的资讯不是最多的资讯，而是能改变决策优先级的资讯。",
+    ]
+
+
+def dynamic_analysis_paragraphs(items: list[Item], now: datetime) -> list[str]:
+    real_items = [item for item in items if not item.fallback]
+    active_items = real_items or items
+    counts = category_counts(active_items)
+    ordered = [(category, count) for category, count in sorted(counts.items(), key=lambda pair: pair[1], reverse=True) if count]
+    top = ordered[0][0] if ordered else "品牌出海"
+    source_count = len({item.source for item in items})
+    signals = keyword_hits(active_items)
+    signal_text = "、".join(signals) if signals else f"{top}相关变化"
+    mode, _ = summary_mode(now)
+    period = "本期" if mode != "今日分析" else "今天"
+
+    if not real_items:
+        return [
+            f"{period}没有抓到严格符合当天日期和品牌出海主题的真实资讯，页面展示的是备用观察项。因此今天不做强结论，只把它当作检查清单。",
+            "如果连续几天真实资讯很少，说明筛选条件可能过窄；如果出现明显偏题内容，说明关键词还需要继续收紧。当前优先级是保证资讯真实和相关，而不是为了页面好看硬凑数量。",
+            *[item_analysis(item, index) for index, item in enumerate(active_items, start=1)],
+        ]
+
+    return [
+        f"{period}抓到 {len(real_items)} 条当天真实资讯，来自 {source_count} 个来源。信息最集中的分类是「{top}」，关键词信号主要是：{signal_text}。",
+        "今天的综合判断不再做泛泛总结，而是看每条资讯分别影响品牌出海的哪一段经营链路。下面这些判断来自当天标题、来源和分类标签。",
+        *[item_analysis(item, index) for index, item in enumerate(real_items, start=1)],
     ]
 
 
