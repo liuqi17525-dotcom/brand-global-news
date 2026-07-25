@@ -1,0 +1,73 @@
+{
+  "report_date": "2026-07-25",
+  "title": "全球品牌出海每日推荐",
+  "trend": "TikTok 正把内容、达人、直播、搜索与广告归因压缩成同一增长系统；内容团队需要同时管理创意供给、授权和转化数据。",
+  "action": "建立内容资产台账，为每条素材记录市场、语言、内容角度、达人、授权状态及 View Content、Add to Cart、Purchase 和增量 ROAS。",
+  "items": [
+    {
+      "title": "TikTok Shop 欧洲新增四个市场，7月开始推出 Shop Tab",
+      "event_date": "公告 2026-05-28；上线 2026-06-15；Shop Tab 于 2026-07 起推出",
+      "category": "平台动作",
+      "summary": "TikTok Shop进入奥地利、比利时、荷兰和波兰，品牌可使用短视频挂车、直播购物、商品橱窗、Shop Tab与欧盟创作者联盟。",
+      "why": "欧洲内容电商由单国试验转向多市场运营，本地语言素材与当地达人网络会成为主要门槛。",
+      "framework": "市场选择、内容本地化、达人/KOL、内容电商",
+      "action": "先选择一个语言和履约条件最成熟的市场，用10名当地中腰部达人测试三种内容角度，再决定是否复制到其他国家。",
+      "source": "TikTok Newsroom",
+      "link": "https://newsroom.tiktok.com/tiktok-shop-expands-across-europe?lang=en-150",
+      "confidence": "官方来源／已上线",
+      "heat": 97
+    },
+    {
+      "title": "TikTok 允许商家和联盟达人直接推广商品购买",
+      "event_date": "官方帮助页更新于 2026-07（未披露具体日）",
+      "category": "广告投放",
+      "summary": "商家或Creator Affiliate可从带有TikTok Shop商品的视频与直播中发起Promote，并以更多商品购买为目标。",
+      "why": "自然内容验证与小额付费放大的距离进一步缩短，内容运营可以直接承担首轮素材筛选。",
+      "framework": "内容测试、达人授权、付费放大、ROAS",
+      "action": "给自然流量表现进入前20%的挂车视频设置统一小预算Promote测试，比较自然转化率与付费增量转化。",
+      "source": "TikTok Ads Help Center",
+      "link": "https://ads.tiktok.com/help/article/how-to-set-up-promote-for-product-purchases?lang=en",
+      "confidence": "官方来源／当前生效",
+      "heat": 96
+    },
+    {
+      "title": "TikTok强调电商广告必须补齐高质量数据事件",
+      "event_date": "2026-07-13",
+      "category": "广告投放",
+      "summary": "TikTok发布电商广告数据优化指引，强调为Smart+ Catalog Ads等产品提供完整、可靠的站内行为与购买事件。",
+      "why": "素材优化不能只看播放、点赞和CTR；缺少下游事件会限制算法判断哪些内容真正带来购买。",
+      "framework": "数据回传、广告归因、素材复盘、ROAS",
+      "action": "将内容ID和创意标签写入分析链路，至少联看View Content、Add to Cart、Purchase、毛利与复购。",
+      "source": "TikTok For Business",
+      "link": "https://ads.tiktok.com/business/en-GB/blog/improve-tiktok-ad-performance-data-signals?redirected=1",
+      "confidence": "官方来源／当前生效",
+      "heat": 95
+    },
+    {
+      "title": "GMV Max统一调用品牌、达人联盟与付费内容",
+      "event_date": "官方指南 2026-01-29；2026年持续执行",
+      "category": "达人/KOL",
+      "summary": "GMV Max会综合品牌自有内容、联盟达人内容和付费广告素材，自动选择创意并按商品层级优化GMV与ROI。",
+      "why": "内容数量、内容差异度和广告授权已经成为投放系统的直接输入，内容团队与投放团队不能再各自为战。",
+      "framework": "达人内容授权、创意供给、自动化投放、归因",
+      "action": "每个重点SKU保持多个不同卖点和创作者类型的有效素材，并建立达人内容授权到期提醒。",
+      "source": "TikTok Shop Academy",
+      "link": "https://seller-us.tiktok.com/university/essay?from=feature_guide&identity=1&knowledge_id=8502408340260654&role=1",
+      "confidence": "官方来源／机制跟踪",
+      "heat": 94
+    },
+    {
+      "title": "TikTok Shop巴西首年增长案例突出本地主播与内容共创",
+      "event_date": "2026-06-04",
+      "category": "品牌案例",
+      "summary": "TikTok披露巴西TikTok Shop首年增长，并以本地顾问直播、创作者内容及品牌Super Brand Day作为代表性打法。",
+      "why": "拉美市场的内容电商增长并非简单翻译素材，而是依靠本地主播关系、场景表达和站内外同步首发。",
+      "framework": "文化本地化、直播、KOL、品牌活动",
+      "action": "进入巴西前先用葡语本地主播验证高频用户问题，把直播问答沉淀成短视频、商品页FAQ和广告素材。",
+      "source": "TikTok Newsroom Brasil",
+      "link": "https://newsroom.tiktok.com/tiktok-shop-cresce-102-vezes-em-seu-primeiro-ano-no-brasil?lang=pt-BR",
+      "confidence": "官方企业数据／需注意自述口径",
+      "heat": 92
+    }
+  ]
+}

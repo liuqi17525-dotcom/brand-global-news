@@ -15,17 +15,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 ASSETS = PUBLIC / "assets"
+CURATED_REPORT = ROOT / "content" / "latest.json"
 TIMEZONE = timezone(timedelta(hours=8))
 ITEMS_PER_CATEGORY = 1
 MIN_RELEVANCE_SCORE = 2
 
 CATEGORIES = [
-    "平台经营",
+    "平台动作",
+    "内容趋势",
+    "达人/KOL",
+    "广告投放",
     "内容电商",
-    "DTC 独立站",
-    "物流支付",
-    "合规政策",
-    "消费趋势",
+    "品牌案例",
 ]
 
 QUERIES = [
@@ -127,6 +128,34 @@ class Item:
     category: str
     heat: int
     fallback: bool = False
+    why: str = ""
+    framework: str = ""
+    action: str = ""
+    confidence: str = ""
+
+
+def load_curated_report() -> tuple[list[Item], dict]:
+    if not CURATED_REPORT.exists():
+        return [], {}
+    payload = json.loads(CURATED_REPORT.read_text(encoding="utf-8"))
+    items = [
+        Item(
+            title=row["title"],
+            link=row["link"],
+            source=row["source"],
+            published=row["event_date"],
+            summary=row["summary"],
+            category=row["category"],
+            heat=row.get("heat", 90),
+            fallback=False,
+            why=row.get("why", ""),
+            framework=row.get("framework", ""),
+            action=row.get("action", ""),
+            confidence=row.get("confidence", ""),
+        )
+        for row in payload.get("items", [])
+    ]
+    return items, payload
 
 
 def fetch_url(url: str, timeout: int = 20) -> bytes:
@@ -209,13 +238,12 @@ def heat_for(title: str, summary: str, index: int) -> int:
 
 def insight_for(category: str) -> str:
     mapping = {
-        "平台经营": "用平台验证市场和价格带，同时把评价、品牌资产和用户反馈沉淀下来。",
-        "内容电商": "把达人、素材、商品页和库存联动起来，避免只有流量没有稳定转化。",
-        "DTC 独立站": "关注复购、支付体验和一方数据，不要只用广告 ROAS 判断成败。",
-        "品牌出海": "判断品牌资产、市场定位和渠道组合是否能支撑长期增长。",
-        "物流支付": "核心市场优先保障履约确定性，物流体验会直接影响评价和复购。",
-        "合规政策": "把税务、认证、标签和隐私要求前置到选品与上市流程里。",
-        "消费趋势": "从搜索、评论和社媒语境里捕捉本地需求，不要直接复制国内卖点。",
+        "平台动作": "优先判断平台功能、规则和流量入口如何改变内容运营方式。",
+        "内容趋势": "把热点拆成可复用的选题、叙事结构和本地化表达。",
+        "达人/KOL": "关注达人发现、授权、佣金和长期合作机制，而不是只看粉丝量。",
+        "广告投放": "把素材标签、数据回传和增量 ROAS 连起来，避免只看表面播放量。",
+        "内容电商": "把短视频、直播、商品页和成交承接放进同一内容链路。",
+        "品牌案例": "提炼可复制的内容节奏、创作者组合和市场本地化方法。",
     }
     return mapping.get(category, "判断品牌资产、市场定位和渠道组合是否能支撑长期增长。")
 
@@ -485,9 +513,13 @@ def render_cards(items: list[Item]) -> str:
                 </div>
                 <h3>{html.escape(item.title)}</h3>
                 <p>{html.escape(item.summary or "暂无摘要，请点击来源查看详情。")}</p>
-                <div class="insight">启示：{html.escape(insight_for(item.category))}</div>
+                <div class="insight">
+                  <strong>为什么值得关注：</strong>{html.escape(item.why or insight_for(item.category))}<br />
+                  <strong>框架：</strong>{html.escape(item.framework or item.category)}<br />
+                  <strong>可借鉴动作：</strong>{html.escape(item.action or "结合目标市场做一次小规模内容验证。")}
+                </div>
                 <div class="card-foot">
-                  <span>{html.escape(item.source)} · {html.escape(item.published)}</span>
+                  <span>{html.escape(item.source)} · {html.escape(item.published)} · {html.escape(item.confidence)}</span>
                   <a href="{html.escape(item.link)}" target="_blank" rel="noreferrer">{link_text}</a>
                 </div>
               </div>
@@ -560,8 +592,14 @@ def render_analysis_html(items: list[Item], now: datetime) -> str:
 """
 
 
-def render_html(items: list[Item], now: datetime) -> str:
-    today = fmt_date(now)
+def render_html(items: list[Item], now: datetime, report: dict | None = None) -> str:
+    report = report or {}
+    report_date = report.get("report_date", now.strftime("%Y-%m-%d"))
+    try:
+        report_day = datetime.strptime(report_date, "%Y-%m-%d").replace(tzinfo=TIMEZONE)
+        today = fmt_date(report_day)
+    except ValueError:
+        today = report_date
     machine_date = now.strftime("%Y-%m-%d %H:%M")
     source_count = len({item.source for item in items})
     top_title = items[0].title if items else "今日暂无可用资讯"
@@ -589,7 +627,7 @@ def render_html(items: list[Item], now: datetime) -> str:
       <div class="hero-copy">
         <p class="eyebrow">{today} · Global Brand Intelligence</p>
         <h1>出海热点</h1>
-        <p>今日值得知道的品牌出海资讯。</p>
+        <p>面向出海内容运营：平台、内容、达人、投放与内容电商的每日核验情报。</p>
       </div>
     </section>
 
@@ -598,7 +636,7 @@ def render_html(items: list[Item], now: datetime) -> str:
       <div class="data-copy">
         <p class="eyebrow">Daily Signal</p>
         <h2>{len(items)} 条热点，{source_count} 个来源</h2>
-        <p>用最少数字概括今天的信息密度，帮助你先判断这期日报的观察价值。</p>
+        <p>{html.escape(report.get("trend", "优先判断哪些平台与内容变化会改变今天的运营动作。"))}</p>
       </div>
       <div class="data-stats">
         <div><strong>{len(items)}</strong><span>热点</span></div>
@@ -1102,13 +1140,19 @@ footer {
 def main() -> None:
     now = datetime.now(TIMEZONE)
     today = now.strftime("%Y-%m-%d")
-    items = collect_items()
+    items, report = load_curated_report()
     if not items:
-        items = fallback_items(today)
+        items = collect_items()
+        report = {
+            "report_date": today,
+            "trend": "当前未读取到人工核验日报，以下为自动抓取结果；请以来源日期为准。",
+        }
+    if not items:
+        raise RuntimeError("No verified or automatically collected items; refusing to publish fake daily placeholders.")
 
     PUBLIC.mkdir(exist_ok=True)
     ensure_assets()
-    (PUBLIC / "index.html").write_text(render_html(items, now), encoding="utf-8")
+    (PUBLIC / "index.html").write_text(render_html(items, now, report), encoding="utf-8")
     (PUBLIC / ".nojekyll").write_text("", encoding="utf-8")
     (PUBLIC / "latest.json").write_text(
         json.dumps([item.__dict__ for item in items], ensure_ascii=False, indent=2),
