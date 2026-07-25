@@ -135,6 +135,10 @@ class Item:
     action: str = ""
     confidence: str = ""
     signal_type: str = "已核验事实"
+    source_published_at: str = ""
+    source_timezone: str = ""
+    first_seen_at: str = ""
+    event_key: str = ""
 
 
 def load_curated_report() -> tuple[list[Item], dict]:
@@ -156,6 +160,10 @@ def load_curated_report() -> tuple[list[Item], dict]:
             action=row.get("action", ""),
             confidence=row.get("confidence", ""),
             signal_type=row.get("signal_type", "已核验事实"),
+            source_published_at=row.get("source_published_at", ""),
+            source_timezone=row.get("source_timezone", ""),
+            first_seen_at=row.get("first_seen_at", ""),
+            event_key=row.get("event_key", ""),
         )
         for row in payload.get("items", [])
     ]
@@ -165,6 +173,9 @@ def load_curated_report() -> tuple[list[Item], dict]:
         raise RuntimeError(f"Unsupported signal_type values: {sorted(signal_types - allowed_signal_types)}")
     if len(signal_types) > 1:
         raise RuntimeError("A daily report cannot mix verified facts with industry radar items.")
+    event_keys = [item.event_key for item in items if item.event_key]
+    if len(event_keys) != len(set(event_keys)):
+        raise RuntimeError("A daily report contains duplicate event_key values.")
     return items, payload
 
 
@@ -665,6 +676,10 @@ def render_html(items: list[Item], now: datetime, report: dict | None = None) ->
     machine_date = now.strftime("%Y-%m-%d %H:%M")
     source_count = len({item.source for item in items})
     top_title = items[0].title if items else "今日暂无可用资讯"
+    edition_label = {"morning": "晨间主版", "evening": "晚间增量版"}.get(report.get("edition"), "当前版")
+    scan_start = report.get("scan_window_start", "")
+    scan_end = report.get("scan_window_end", "")
+    scan_window = f"扫描窗口：{scan_start} — {scan_end}" if scan_start and scan_end else "扫描窗口：待下次自动更新记录"
 
     return f"""<!doctype html>
 <html lang="zh-CN">
@@ -699,6 +714,7 @@ def render_html(items: list[Item], now: datetime, report: dict | None = None) ->
         <p class="eyebrow">Daily Signal</p>
         <h2>{len(items)} 条热点，{source_count} 个来源</h2>
         <p>{html.escape(report.get("trend", "优先判断哪些平台与内容变化会改变今天的运营动作。"))}</p>
+        <p class="scan-window">{edition_label} · {html.escape(scan_window)}</p>
       </div>
       <div class="data-stats">
         <div><strong>{len(items)}</strong><span>热点</span></div>
@@ -995,6 +1011,11 @@ h1 {
 .data-copy p:not(.eyebrow) {
   margin-top: 10px;
   color: var(--muted);
+}
+
+.data-copy .scan-window {
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .data-stats {
