@@ -424,6 +424,14 @@ h1 {
   font-size: 12px;
 }
 
+.category-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, .1);
+  color: var(--green);
+  font-weight: 800;
+}
+
 .news-card h3 { font-size: 19px; line-height: 1.28; }
 .news-card p { color: var(--muted); font-size: 14px; }
 
@@ -471,7 +479,6 @@ footer {
   <header class="topbar">
     <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
     <nav>
-      <a href="#modules">模块</a>
       <a href="#news">热点</a>
     </nav>
   </header>
@@ -499,75 +506,6 @@ footer {
       </div>
     </section>
 
-    <section class="modules" id="modules">
-      <div class="section-head">
-        <p class="eyebrow">Fixed Modules</p>
-        <h2>固定观察模块</h2>
-      </div>
-      <div class="module-grid">
-        
-            <article class="module-card">
-              <img src="assets/cover-global.png" alt="平台动作封面" />
-              <div>
-                <span>1 条</span>
-                <h3>平台动作</h3>
-                <p>优先判断平台功能、规则和流量入口如何改变内容运营方式。</p>
-              </div>
-            </article>
-            
-
-            <article class="module-card">
-              <img src="assets/cover-global.png" alt="内容趋势封面" />
-              <div>
-                <span>0 条</span>
-                <h3>内容趋势</h3>
-                <p>把热点拆成可复用的选题、叙事结构和本地化表达。</p>
-              </div>
-            </article>
-            
-
-            <article class="module-card">
-              <img src="assets/cover-global.png" alt="达人/KOL封面" />
-              <div>
-                <span>1 条</span>
-                <h3>达人/KOL</h3>
-                <p>关注达人发现、授权、佣金和长期合作机制，而不是只看粉丝量。</p>
-              </div>
-            </article>
-            
-
-            <article class="module-card">
-              <img src="assets/cover-global.png" alt="广告投放封面" />
-              <div>
-                <span>2 条</span>
-                <h3>广告投放</h3>
-                <p>把素材标签、数据回传和增量 ROAS 连起来，避免只看表面播放量。</p>
-              </div>
-            </article>
-            
-
-            <article class="module-card">
-              <img src="assets/cover-content.png" alt="内容电商封面" />
-              <div>
-                <span>0 条</span>
-                <h3>内容电商</h3>
-                <p>把短视频、直播、商品页和成交承接放进同一内容链路。</p>
-              </div>
-            </article>
-            
-
-            <article class="module-card">
-              <img src="assets/cover-global.png" alt="品牌案例封面" />
-              <div>
-                <span>1 条</span>
-                <h3>品牌案例</h3>
-                <p>提炼可复制的内容节奏、创作者组合和市场本地化方法。</p>
-              </div>
-            </article>
-            
-      </div>
-    </section>
-
     <section class="news-section" id="news">
       <div class="section-head">
         <p class="eyebrow">News Feed</p>
@@ -576,11 +514,11 @@ footer {
       <div class="news-grid">
         
             <article class="news-card">
-              <img src="assets/cover-global.png" alt="资讯预览图" />
+              <img src="assets/cover-platform-updates.png" alt="资讯预览图" />
               <div class="card-body">
                 <div class="card-meta">
                   <span>01</span>
-                  <span>热度 97</span>
+                  <span class="category-tag">平台动作</span>
                 </div>
                 <h3>TikTok Shop 欧洲新增四个市场，7月开始推出 Shop Tab</h3>
                 <p>TikTok Shop进入奥地利、比利时、荷兰和波兰，品牌可使用短视频挂车、直播购物、商品橱窗、Shop Tab与欧盟创作者联盟。</p>
@@ -598,11 +536,11 @@ footer {
             
 
             <article class="news-card">
-              <img src="assets/cover-global.png" alt="资讯预览图" />
+              <img src="assets/cover-ads.png" alt="资讯预览图" />
               <div class="card-body">
                 <div class="card-meta">
                   <span>02</span>
-                  <span>热度 96</span>
+                  <span class="category-tag">广告投放</span>
                 </div>
                 <h3>TikTok 允许商家和联盟达人直接推广商品购买</h3>
                 <p>商家或Creator Affiliate可从带有TikTok Shop商品的视频与直播中发起Promote，并以更多商品购买为目标。</p>
@@ -620,11 +558,11 @@ footer {
             
 
             <article class="news-card">
-              <img src="assets/cover-global.png" alt="资讯预览图" />
+              <img src="assets/cover-ads.png" alt="资讯预览图" />
               <div class="card-body">
                 <div class="card-meta">
                   <span>03</span>
-                  <span>热度 95</span>
+                  <span class="category-tag">广告投放</span>
                 </div>
                 <h3>TikTok强调电商广告必须补齐高质量数据事件</h3>
                 <p>TikTok发布电商广告数据优化指引，强调为Smart+ Catalog Ads等产品提供完整、可靠的站内行为与购买事件。</p>
@@ -642,11 +580,11 @@ footer {
             
 
             <article class="news-card">
-              <img src="assets/cover-global.png" alt="资讯预览图" />
+              <img src="assets/cover-content.png" alt="资讯预览图" />
               <div class="card-body">
                 <div class="card-meta">
                   <span>04</span>
-                  <span>热度 94</span>
+                  <span class="category-tag">达人/KOL</span>
                 </div>
                 <h3>GMV Max统一调用品牌、达人联盟与付费内容</h3>
                 <p>GMV Max会综合品牌自有内容、联盟达人内容和付费广告素材，自动选择创意并按商品层级优化GMV与ROI。</p>
@@ -668,7 +606,7 @@ footer {
               <div class="card-body">
                 <div class="card-meta">
                   <span>05</span>
-                  <span>热度 92</span>
+                  <span class="category-tag">品牌案例</span>
                 </div>
                 <h3>TikTok Shop巴西首年增长案例突出本地主播与内容共创</h3>
                 <p>TikTok披露巴西TikTok Shop首年增长，并以本地顾问直播、创作者内容及品牌Super Brand Day作为代表性打法。</p>
@@ -689,7 +627,7 @@ footer {
   </main>
 
   <footer>
-    最后更新：2026-07-25 20:46 Asia/Shanghai。
+    最后更新：2026-07-25 21:02 Asia/Shanghai。
   </footer>
 </body>
 </html>

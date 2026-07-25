@@ -108,13 +108,12 @@ NOISE_KEYWORDS = [
 ]
 
 CATEGORY_COVERS = {
-    "平台经营": "cover-platform.png",
-    "内容电商": "cover-content.png",
-    "DTC 独立站": "cover-dtc.png",
-    "品牌出海": "cover-global.png",
-    "物流支付": "cover-logistics.png",
-    "合规政策": "cover-compliance.png",
-    "消费趋势": "cover-consumer.png",
+    "平台动作": "cover-platform-updates.png",
+    "内容趋势": "cover-consumer.png",
+    "达人/KOL": "cover-content.png",
+    "广告投放": "cover-ads.png",
+    "内容电商": "cover-dtc.png",
+    "品牌案例": "cover-global.png",
 }
 
 
@@ -331,6 +330,8 @@ def ensure_assets() -> None:
     for filename in [
         "global-commerce-hero.png",
         "hotspots-data-cover.png",
+        "cover-platform-updates.png",
+        "cover-ads.png",
         *CATEGORY_COVERS.values(),
     ]:
         source = ROOT / "assets" / filename
@@ -476,7 +477,7 @@ def render_analysis_paragraphs(items: list[Item], now: datetime) -> str:
 
 
 def cover_for(category: str) -> str:
-    return CATEGORY_COVERS.get(category, CATEGORY_COVERS["品牌出海"])
+    return CATEGORY_COVERS.get(category, CATEGORY_COVERS["品牌案例"])
 
 
 def render_modules(items: list[Item]) -> str:
@@ -509,7 +510,7 @@ def render_cards(items: list[Item]) -> str:
               <div class="card-body">
                 <div class="card-meta">
                   <span>{index:02d}</span>
-                  <span>热度 {item.heat}</span>
+                  <span class="category-tag">{html.escape(item.category)}</span>
                 </div>
                 <h3>{html.escape(item.title)}</h3>
                 <p>{html.escape(item.summary or "暂无摘要，请点击来源查看详情。")}</p>
@@ -616,7 +617,6 @@ def render_html(items: list[Item], now: datetime, report: dict | None = None) ->
   <header class="topbar">
     <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
     <nav>
-      <a href="#modules">模块</a>
       <a href="#news">热点</a>
     </nav>
   </header>
@@ -641,16 +641,6 @@ def render_html(items: list[Item], now: datetime, report: dict | None = None) ->
       <div class="data-stats">
         <div><strong>{len(items)}</strong><span>热点</span></div>
         <div><strong>{source_count}</strong><span>来源</span></div>
-      </div>
-    </section>
-
-    <section class="modules" id="modules">
-      <div class="section-head">
-        <p class="eyebrow">Fixed Modules</p>
-        <h2>固定观察模块</h2>
-      </div>
-      <div class="module-grid">
-        {render_modules(items)}
       </div>
     </section>
 
@@ -1091,6 +1081,14 @@ h1 {
   gap: 12px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.category-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, .1);
+  color: var(--green);
+  font-weight: 800;
 }
 
 .news-card h3 { font-size: 19px; line-height: 1.28; }
