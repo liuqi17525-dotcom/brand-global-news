@@ -16,6 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
 ASSETS = PUBLIC / "assets"
 CURATED_REPORT = ROOT / "content" / "latest.json"
+HISTORY_DIR = ROOT / "content" / "history"
+REVIEWS_DIR = ROOT / "content" / "reviews"
+PUBLIC_HISTORY_DIR = PUBLIC / "history"
 TIMEZONE = timezone(timedelta(hours=8))
 ITEMS_PER_CATEGORY = 1
 MIN_RELEVANCE_SCORE = 2
@@ -131,6 +134,7 @@ class Item:
     framework: str = ""
     action: str = ""
     confidence: str = ""
+    signal_type: str = "已核验事实"
 
 
 def load_curated_report() -> tuple[list[Item], dict]:
@@ -151,10 +155,50 @@ def load_curated_report() -> tuple[list[Item], dict]:
             framework=row.get("framework", ""),
             action=row.get("action", ""),
             confidence=row.get("confidence", ""),
+            signal_type=row.get("signal_type", "已核验事实"),
         )
         for row in payload.get("items", [])
     ]
     return items, payload
+
+
+def archive_report(report: dict) -> None:
+    """Keep each published daily report as a source file for later reviews."""
+    report_date = report.get("report_date", "")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", report_date):
+        raise ValueError(f"Invalid report_date for archive: {report_date!r}")
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    (HISTORY_DIR / f"{report_date}.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def load_history_reports() -> list[dict]:
+    reports = []
+    if not HISTORY_DIR.exists():
+        return reports
+    for path in sorted(HISTORY_DIR.glob("????-??-??.json"), reverse=True):
+        try:
+            report = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(report, dict) and report.get("report_date"):
+            reports.append(report)
+    return reports
+
+
+def load_review_reports() -> list[dict]:
+    reviews = []
+    if not REVIEWS_DIR.exists():
+        return reviews
+    for path in sorted(REVIEWS_DIR.glob("*.json"), reverse=True):
+        try:
+            review = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        if isinstance(review, dict) and review.get("period"):
+            reviews.append(review)
+    return reviews
 
 
 def fetch_url(url: str, timeout: int = 20) -> bytes:
@@ -521,6 +565,7 @@ def render_cards(items: list[Item]) -> str:
                 <div class="card-meta">
                   <span>{index:02d}</span>
                   <span class="category-tag">{html.escape(item.category)}</span>
+                  <span class="signal-tag">{html.escape(item.signal_type)}</span>
                 </div>
                 <h3>{html.escape(item.title)}</h3>
                 <p>{html.escape(item.summary or "暂无摘要，请点击来源查看详情。")}</p>
@@ -628,6 +673,7 @@ def render_html(items: list[Item], now: datetime, report: dict | None = None) ->
     <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
     <nav>
       <a href="#news">热点</a>
+      <a href="archive.html">沉淀库</a>
     </nav>
   </header>
 
@@ -668,6 +714,73 @@ def render_html(items: list[Item], now: datetime, report: dict | None = None) ->
   <footer>
     最后更新：{machine_date} Asia/Shanghai。
   </footer>
+</body>
+</html>
+"""
+
+
+def render_archive_html(history: list[dict], reviews: list[dict], now: datetime) -> str:
+    history_rows = []
+    for report in history:
+        item_count = len(report.get("items", []))
+        history_rows.append(
+            f"""
+            <article class="analysis-source">
+              <span>{html.escape(report.get("report_date", ""))}</span>
+              <div>
+                <h3>{item_count} 条当日情报</h3>
+                <p>{html.escape(report.get("trend", "暂无趋势判断。"))}</p>
+                <a href="history/{html.escape(report.get("report_date", ""))}.json" target="_blank" rel="noreferrer">查看结构化归档</a>
+              </div>
+            </article>
+            """
+        )
+    review_rows = []
+    for review in reviews:
+        review_rows.append(
+            f"""
+            <article class="analysis-source">
+              <span>{html.escape(review.get("period", ""))}</span>
+              <div>
+                <h3>{html.escape(review.get("title", "阶段总结"))}</h3>
+                <p>{html.escape(review.get("summary", ""))}</p>
+                <p><strong>建议：</strong>{html.escape(review.get("action", ""))}</p>
+              </div>
+            </article>
+            """
+        )
+    history_html = "\n".join(history_rows) or "<p>历史归档将在每日发布后自动沉淀。</p>"
+    reviews_html = "\n".join(review_rows) or "<p>首份季度/年度总结将在对应周期结束后生成。</p>"
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>情报沉淀库 · 品牌出海热点速递</title>
+  <style>{CSS}</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
+    <nav><a href="./">首页</a><a href="#reviews">季度/年度总结</a><a href="#history">每日归档</a></nav>
+  </header>
+  <main class="analysis-page">
+    <section class="analysis-hero">
+      <p class="eyebrow">Knowledge Archive</p>
+      <h1>内容运营情报沉淀库</h1>
+      <p>每天保留结构化情报；季度末与年末以这些已保存的来源、类别、市场和行动建议为基础进行复盘。</p>
+    </section>
+    <section class="analysis-long" id="reviews">
+      <h2>季度与年度总结</h2>
+      <div class="analysis-sources">{reviews_html}</div>
+    </section>
+    <section class="analysis-long" id="history">
+      <h2>每日归档</h2>
+      <p>已沉淀 {len(history)} 期。每期均保留当日结论、行动建议和条目链接，供季度总结追溯。</p>
+      <div class="analysis-sources">{history_html}</div>
+    </section>
+  </main>
+  <footer>最后更新：{now.strftime("%Y-%m-%d %H:%M")} Asia/Shanghai。</footer>
 </body>
 </html>
 """
@@ -1101,6 +1214,14 @@ h1 {
   font-weight: 800;
 }
 
+.signal-tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, .08);
+  color: var(--muted);
+  font-weight: 700;
+}
+
 .news-card h3 { font-size: 19px; line-height: 1.28; }
 .news-card p { color: var(--muted); font-size: 14px; }
 
@@ -1157,7 +1278,14 @@ def main() -> None:
 
     PUBLIC.mkdir(exist_ok=True)
     ensure_assets()
+    archive_report(report)
+    history = load_history_reports()
+    reviews = load_review_reports()
+    PUBLIC_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    for source in HISTORY_DIR.glob("????-??-??.json"):
+        shutil.copy2(source, PUBLIC_HISTORY_DIR / source.name)
     (PUBLIC / "index.html").write_text(render_html(items, now, report), encoding="utf-8")
+    (PUBLIC / "archive.html").write_text(render_archive_html(history, reviews, now), encoding="utf-8")
     (PUBLIC / ".nojekyll").write_text("", encoding="utf-8")
     (PUBLIC / "latest.json").write_text(
         json.dumps([item.__dict__ for item in items], ensure_ascii=False, indent=2),
