@@ -109,11 +109,11 @@ NOISE_KEYWORDS = [
 
 CATEGORY_COVERS = {
     "平台动作": "cover-platform-updates.png",
-    "内容趋势": "cover-consumer.png",
-    "达人/KOL": "cover-content.png",
+    "内容趋势": "cover-content-trends-v2.png",
+    "达人/KOL": "cover-creators-v2.png",
     "广告投放": "cover-ads.png",
-    "内容电商": "cover-dtc.png",
-    "品牌案例": "cover-global.png",
+    "内容电商": "cover-commerce-v2.png",
+    "品牌案例": "cover-brand-cases-v2.png",
 }
 
 
