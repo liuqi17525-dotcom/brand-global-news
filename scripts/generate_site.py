@@ -1140,13 +1140,12 @@ def main() -> None:
     today = now.strftime("%Y-%m-%d")
     items, report = load_curated_report()
     if not items:
-        items = collect_items()
-        report = {
-            "report_date": today,
-            "trend": "当前未读取到人工核验日报，以下为自动抓取结果；请以来源日期为准。",
-        }
-    if not items:
-        raise RuntimeError("No verified or automatically collected items; refusing to publish fake daily placeholders.")
+        raise RuntimeError("No curated report found; refusing to replace verified content with automatic RSS results.")
+    if report.get("report_date") != today:
+        raise RuntimeError(
+            f"Curated report date is {report.get('report_date')!r}, expected Beijing date {today}; "
+            "keeping the previous verified deployment."
+        )
 
     PUBLIC.mkdir(exist_ok=True)
     ensure_assets()

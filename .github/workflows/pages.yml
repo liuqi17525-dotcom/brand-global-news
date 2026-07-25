@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-  schedule:
-    - cron: "45 1 * * *"
   workflow_dispatch:
 
 permissions:
@@ -36,9 +34,13 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          from datetime import datetime, timedelta, timezone
           from pathlib import Path
           report = json.loads(Path("content/latest.json").read_text(encoding="utf-8"))
-          assert report.get("report_date"), "missing report_date"
+          today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+          assert report.get("report_date") == today, (
+              f"report date {report.get('report_date')!r} does not match Beijing date {today}"
+          )
           assert report.get("items"), "report has no verified items"
           print(f"publishing {report['report_date']} with {len(report['items'])} verified items")
           PY
