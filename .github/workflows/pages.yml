@@ -41,7 +41,7 @@ jobs:
           assert report.get("report_date") == today, (
               f"report date {report.get('report_date')!r} does not match Beijing date {today}"
           )
-          assert report.get("items"), "report has no verified items"
+          assert isinstance(report.get("items"), list), "report items must be a list"
           print(f"publishing {report['report_date']} with {len(report['items'])} verified items")
           PY
 

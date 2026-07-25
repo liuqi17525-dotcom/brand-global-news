@@ -500,6 +500,16 @@ def render_modules(items: list[Item]) -> str:
 
 
 def render_cards(items: list[Item]) -> str:
+    if not items:
+        return """
+        <article class="news-card empty-state">
+          <div class="card-body">
+            <div class="card-meta"><span>今日核验结果</span></div>
+            <h3>今日暂无通过“具体日期 + 当天新增 + 岗位相关”核验的核心资讯</h3>
+            <p>宁缺毋滥：没有用月份级更新时间、旧机制说明或同一平台的背景资料补足卡片。</p>
+          </div>
+        </article>
+        """
     cards = []
     for index, item in enumerate(items, start=1):
         link_text = "查看来源详情" if item.fallback else "查看原文"
@@ -1139,8 +1149,6 @@ def main() -> None:
     now = datetime.now(TIMEZONE)
     today = now.strftime("%Y-%m-%d")
     items, report = load_curated_report()
-    if not items:
-        raise RuntimeError("No curated report found; refusing to replace verified content with automatic RSS results.")
     if report.get("report_date") != today:
         raise RuntimeError(
             f"Curated report date is {report.get('report_date')!r}, expected Beijing date {today}; "
