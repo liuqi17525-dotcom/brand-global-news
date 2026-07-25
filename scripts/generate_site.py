@@ -159,6 +159,12 @@ def load_curated_report() -> tuple[list[Item], dict]:
         )
         for row in payload.get("items", [])
     ]
+    signal_types = {item.signal_type for item in items}
+    allowed_signal_types = {"已核验事实", "行业雷达"}
+    if not signal_types.issubset(allowed_signal_types):
+        raise RuntimeError(f"Unsupported signal_type values: {sorted(signal_types - allowed_signal_types)}")
+    if len(signal_types) > 1:
+        raise RuntimeError("A daily report cannot mix verified facts with industry radar items.")
     return items, payload
 
 
