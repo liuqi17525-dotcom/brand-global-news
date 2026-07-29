@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "title": "TikTok发布Q3产品预览，扩展Smart+创意、GMV Max与Pulse能力",
+    "link": "https://ads.tiktok.com/business/en/blog/tiktok-product-preview",
+    "source": "TikTok For Business",
+    "published": "2026-07-28（官方页面仅披露日期；各功能可用范围不同）",
+    "summary": "TikTok For Business发布2026年第三季度产品预览，覆盖TopView自助投放与地域排除、Smart+ Catalog Ads的Creative Upgrades和站点素材自动抓取、GMV Max Pro、Pulse Mentions、Symphony Agent、Agentic Hub及Smart+ Search Ads等更新；部分能力已普遍开放，部分仍为白名单或Q3测试。",
+    "category": "广告投放",
+    "heat": 96,
+    "fallback": false,
+    "why": "这批更新把品牌已有素材、达人内容、商品目录、搜索意图和广告管理放进更连续的自动化流程。对内容运营团队的直接影响是：素材来源不再只靠人工上传，但品牌安全、授权、地域可用性与自动化成本仍需逐项复核。",
+    "framework": "按“素材输入—自动组合—投放控制—业务结果”四层评估：先审查品牌上传、达人授权与站点抓取素材，再确认自动生成和轮换逻辑，随后核对地域、版位与预算控制，最后用增量转化、完整成本与创意疲劳指标判断价值。",
+    "action": "在目标账户建立Q3功能清单，标注已开放、白名单和未开放状态；若获得Creative Upgrades或Auto-Crawl，先用低风险商品组测试，并设置人工排除、授权记录和品牌一致性复核，不直接把自动发现素材全量投入。",
+    "confidence": "高：TikTok For Business官方发布；页面仅披露2026-07-28日期，功能状态与区域限制已区分",
+    "signal_type": "已核验事实",
+    "source_published_at": "2026-07-28（来源仅披露日期）",
+    "source_timezone": "来源未披露；TikTok For Business全球英文页；北京时间无法精确换算",
+    "first_seen_at": "2026-07-29T09:33:04+08:00",
+    "event_key": "tiktok-q3-2026-product-preview-smartplus-gmvmax-pulse-global-2026-07-28"
+  },
+  {
+    "title": "瑞幸与Duolingo在美国启动双阶段Gen Z内容联名",
+    "link": "https://www.prnewswire.com/news-releases/luckin-coffee-and-duolingo-team-up-for-a-limited-time-collaboration-celebrating-summer-learning-and-back-to-school-302835842.html",
+    "source": "Luckin Coffee（品牌原始新闻稿）",
+    "published": "2026-07-28 09:01 ET（北京时间2026-07-28 21:01；当日启动）",
+    "summary": "Luckin Coffee在美国首次品牌联名中与Duolingo合作，先以“Study Now or I Get Icy”承接暑期学习，再以“Time to Luckin and Learn”转入返校季；活动结合双方鲜明的Gen Z品牌人格、限定饮品、联名杯具、贴纸、笔记本和书签，并于纽约参与门店上线。",
+    "category": "品牌案例",
+    "heat": 91,
+    "fallback": false,
+    "why": "这不是单纯换包装，而是把两个品牌已有的社媒人格和日常行为——学习与喝咖啡——组织成连续两阶段内容主题，再用可拍、可收藏、可分享的线下物料延长传播。它为中国消费品牌进入美国市场提供了明确的本地内容联名结构。",
+    "framework": "用“受众重合—人格关系—时间节点—参与媒介”拆解联名：先确认双方Gen Z受众和语气兼容，再设计能产生对话的品牌人格关系，以暑期和返校两个节点推进叙事，最后让饮品、杯具和文具成为UGC道具。",
+    "action": "规划海外联名时先写出双方品牌人格的一句互动关系，再安排至少两个时间节点和三类可拍物料；上线后分别跟踪联名话题参与、门店内容产出、收藏物料曝光与新品转化，避免只看总播放量。",
+    "confidence": "高：品牌提供的原始新闻稿，披露具体时间、市场、活动阶段与上线状态",
+    "signal_type": "已核验事实",
+    "source_published_at": "2026-07-28T09:01:00-04:00（北京时间2026-07-28T21:01:00+08:00）",
+    "source_timezone": "ET（发布日处于EDT，UTC-04:00）",
+    "first_seen_at": "2026-07-29T09:33:04+08:00",
+    "event_key": "luckin-coffee-duolingo-genz-campaign-united-states-2026-07-28"
+  }
+]
