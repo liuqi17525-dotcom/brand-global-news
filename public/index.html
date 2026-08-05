@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>品牌出海热点速递</title>
+  <title>出海内容素材雷达</title>
   <style>
 :root {
   --bg: #f5f7f8;
@@ -12,7 +12,10 @@
   --panel: #ffffff;
   --line: #dce4e8;
   --green: #0f766e;
+  --green-soft: rgba(15, 118, 110, .1);
   --blue: #285f95;
+  --amber: #b45309;
+  --amber-soft: rgba(180, 83, 9, .1);
   --shadow: 0 18px 46px rgba(18, 30, 38, .1);
 }
 
@@ -27,9 +30,10 @@ body {
 }
 
 a { color: inherit; text-decoration: none; }
+h1, h2, h3, p { margin: 0; }
 
 .topbar {
-  width: min(1240px, calc(100% - 40px));
+  width: min(1180px, calc(100% - 40px));
   min-height: 74px;
   margin: 0 auto;
   display: flex;
@@ -45,7 +49,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 800;
 }
 
-.brand span {
+.brand .logo {
   width: 34px;
   height: 34px;
   display: grid;
@@ -57,491 +61,354 @@ a { color: inherit; text-decoration: none; }
 }
 
 nav { display: flex; gap: 16px; color: var(--muted); font-size: 14px; }
+nav a:hover { color: var(--ink); }
 
 main {
-  width: min(1240px, calc(100% - 40px));
+  width: min(1180px, calc(100% - 40px));
   margin: 0 auto 58px;
 }
 
 .hero {
-  min-height: 560px;
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  border: 1px solid rgba(220, 228, 232, .92);
+  padding: 40px 44px;
   border-radius: 10px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  background: #111b22;
-}
-
-.hero > img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
   background:
-    linear-gradient(90deg, rgba(8, 16, 20, .88), rgba(8, 16, 20, .42) 48%, rgba(8, 16, 20, .76)),
-    linear-gradient(0deg, rgba(8, 16, 20, .82), transparent 56%);
-}
-
-.data-band,
-.module-card,
-.analysis-panel,
-.news-card {
-  border: 1px solid rgba(220, 228, 232, .92);
-  border-radius: 10px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.hero-copy {
-  width: min(760px, calc(100% - 48px));
-  padding: 0 0 44px 44px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  position: relative;
-  z-index: 1;
+    linear-gradient(135deg, rgba(15, 118, 110, .16), transparent 46%),
+    var(--ink);
   color: #fff;
+  box-shadow: var(--shadow);
 }
 
-.hero-copy::after {
-  content: none;
-}
+.hero .eyebrow { color: #7fd1c8; }
 
 .eyebrow {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: var(--green);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-h1, h2, h3, p { margin: 0; }
-
-h1 {
-  max-width: 720px;
-  font-size: clamp(48px, 7vw, 86px);
-  line-height: .98;
-  letter-spacing: 0;
-  position: relative;
-  z-index: 1;
+.hero h1 {
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.08;
 }
 
-.hero-copy p:not(.eyebrow) {
-  max-width: 720px;
-  margin-top: 18px;
-  color: rgba(255,255,255,.82);
-  font-size: 18px;
-  position: relative;
-  z-index: 1;
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 28px;
-  position: relative;
-  z-index: 1;
-}
-
-.hero-actions a {
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: #fff;
-  color: var(--ink);
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.hero-actions a + a {
-  background: rgba(255,255,255,.12);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.24);
-}
-
-.data-band > img,
-.module-card img,
-.news-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.data-band {
-  min-height: 190px;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 240px;
-  gap: 0;
-  margin: 20px 0;
-}
-
-.data-band > img { min-height: 190px; filter: saturate(.9) contrast(.95); }
-
-.data-copy {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.data-copy h2,
-.section-head h2,
-.analysis-panel h2 {
-  font-size: 28px;
-  line-height: 1.15;
-}
-
-.data-copy p:not(.eyebrow) {
-  margin-top: 10px;
-  color: var(--muted);
-}
-
-.data-copy .scan-window {
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.data-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  border-left: 1px solid var(--line);
-}
-
-.data-stats div {
-  padding: 22px 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  border-left: 1px solid var(--line);
-}
-
-.data-stats strong { font-size: 30px; line-height: 1; }
-.data-stats span { margin-top: 8px; color: var(--muted); font-size: 13px; }
-
-.section-head { margin: 28px 0 14px; }
-
-.module-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.module-card {
-  min-height: 220px;
-  display: grid;
-  grid-template-rows: 110px 1fr;
-}
-
-.module-card img { filter: brightness(.78) saturate(.9); }
-
-.module-card div { padding: 16px; }
-.module-card span { color: var(--green); font-size: 12px; font-weight: 800; }
-.module-card h3 { margin-top: 6px; font-size: 20px; }
-.module-card p { margin-top: 8px; color: var(--muted); font-size: 13px; }
-
-.analysis-panel {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 24px;
-  padding: 24px;
-  margin: 24px 0;
-  border-left: 6px solid var(--green);
-}
-
-.analysis-panel ol { margin: 0; padding-left: 22px; color: var(--muted); }
-.analysis-panel li + li { margin-top: 10px; }
-
-.analysis-teaser {
-  color: var(--muted);
-}
-
-.analysis-teaser a {
-  display: inline-flex;
+.hero p.lead {
+  max-width: 640px;
   margin-top: 14px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: var(--ink);
-  color: #fff;
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.analysis-page {
-  max-width: 980px;
-}
-
-.analysis-hero,
-.analysis-long {
-  border: 1px solid rgba(220, 228, 232, .92);
-  border-radius: 10px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-}
-
-.analysis-hero {
-  padding: 42px;
-  margin-bottom: 20px;
-  background:
-    linear-gradient(135deg, rgba(15, 118, 110, .12), transparent 42%),
-    #fff;
-}
-
-.analysis-hero h1 {
-  max-width: 780px;
-}
-
-.analysis-hero p:not(.eyebrow) {
-  max-width: 760px;
-  margin-top: 18px;
-  color: var(--muted);
-  font-size: 18px;
-}
-
-.analysis-long {
-  padding: 28px;
-  margin-bottom: 18px;
-}
-
-.analysis-long h2 {
-  font-size: 28px;
-  line-height: 1.15;
-  margin-bottom: 14px;
-}
-
-.analysis-long p {
-  color: var(--muted);
+  color: rgba(255, 255, 255, .82);
   font-size: 16px;
 }
 
-.analysis-long p + p {
-  margin-top: 14px;
+.niche-line {
+  margin-top: 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, .66);
 }
 
-.analysis-long ol {
-  margin: 0;
-  padding-left: 22px;
-  color: var(--muted);
-}
-
-.analysis-long li + li {
-  margin-top: 10px;
-}
-
-.analysis-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.analysis-grid div {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 14px;
-  background: #f9fbfb;
-}
-
-.analysis-grid strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.analysis-grid p {
+.setup-banner {
+  margin-top: 16px;
+  padding: 16px 20px;
+  border: 1px dashed var(--amber);
+  border-radius: 10px;
+  background: var(--amber-soft);
+  color: #7c4a03;
   font-size: 14px;
 }
 
-.analysis-sources {
-  display: grid;
-  gap: 12px;
-}
-
-.analysis-source {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px 0;
-  border-top: 1px solid var(--line);
-}
-
-.analysis-source span {
-  color: var(--green);
-  font-weight: 900;
-}
-
-.analysis-source h3 {
-  font-size: 18px;
-  line-height: 1.28;
-}
-
-.analysis-source p {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.analysis-source a {
-  display: inline-flex;
-  margin-top: 10px;
-  color: var(--blue);
-  font-weight: 800;
+.setup-banner strong { display: block; margin-bottom: 4px; }
+.setup-banner code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .7);
   font-size: 13px;
 }
 
-.news-grid {
+.stats-band {
+  margin: 20px 0 8px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.stats-band div {
+  padding: 20px;
+  border-left: 1px solid var(--line);
+}
+
+.stats-band div:first-child { border-left: 0; }
+.stats-band strong { font-size: 28px; line-height: 1; display: block; }
+.stats-band span { margin-top: 6px; color: var(--muted); font-size: 13px; display: block; }
+
+.section { margin-top: 34px; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.section-head h2 { font-size: 26px; line-height: 1.15; }
+.section-head p { color: var(--muted); font-size: 13px; }
+
+.card-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-.news-card {
-  min-height: 388px;
-  display: grid;
-  grid-template-rows: 138px 1fr;
-}
-
-.news-card > img { filter: brightness(.78) saturate(.92); }
-
-.card-body {
-  padding: 18px;
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.card-meta,
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 800;
+}
+
+.tag.plain {
+  background: rgba(15, 23, 42, .07);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.card h3 { font-size: 18px; line-height: 1.32; }
+.card .copy { color: var(--muted); font-size: 14px; }
+
+.quote {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 4px solid var(--green);
+  border-radius: 0 8px 8px 0;
+  background: #f4f8f8;
+  color: #31424b;
+  font-size: 14px;
+}
+
+.takeaway {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: #31424b;
+}
+
+.takeaway strong { color: var(--ink); }
+
 .card-foot {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
   color: var(--muted);
   font-size: 12px;
 }
 
-.category-tag {
-  padding: 3px 9px;
+.card-foot a { color: var(--blue); font-weight: 800; white-space: nowrap; }
+
+.trend-list { display: grid; gap: 12px; }
+
+.trend-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 72px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.trend-row .kw { font-weight: 800; font-size: 16px; word-break: break-all; }
+
+.signal {
+  display: inline-block;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(15, 118, 110, .1);
-  color: var(--green);
+  font-size: 12px;
   font-weight: 800;
+  text-align: center;
 }
 
-.signal-tag {
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, .08);
+.signal-up { background: var(--green-soft); color: var(--green); }
+.signal-hot { background: var(--amber-soft); color: var(--amber); }
+.signal-down { background: rgba(15, 23, 42, .07); color: var(--muted); }
+
+.trend-row .evidence { color: var(--muted); font-size: 14px; }
+.trend-row .suggestion { margin-top: 6px; font-size: 14px; color: #31424b; }
+.trend-row a { color: var(--blue); font-weight: 800; font-size: 13px; }
+
+.empty-block {
+  grid-column: 1 / -1;
+  padding: 28px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: var(--panel);
   color: var(--muted);
-  font-weight: 700;
-}
-
-.news-card h3 { font-size: 19px; line-height: 1.28; }
-.news-card p { color: var(--muted); font-size: 14px; }
-
-.insight {
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  color: #31424b;
   font-size: 14px;
 }
 
-.card-foot a { color: var(--blue); font-weight: 800; white-space: nowrap; }
+.empty-block strong { color: var(--ink); display: block; margin-bottom: 6px; font-size: 16px; }
+.empty-block code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #eef2f4;
+  font-size: 13px;
+}
+
+.topic-group { margin-top: 22px; }
+.topic-group h3 { font-size: 18px; margin-bottom: 10px; }
+.topic-group h3 span { color: var(--muted); font-size: 13px; font-weight: 400; margin-left: 8px; }
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.status-0 { background: var(--amber); }
+.status-1 { background: var(--blue); }
+.status-2 { background: var(--green); }
+.status-3 { background: var(--muted); }
+
+.archive-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.archive-row .date { color: var(--green); font-weight: 800; font-size: 14px; }
+.archive-row h3 { font-size: 16px; }
+.archive-row p { margin-top: 6px; color: var(--muted); font-size: 14px; }
+.archive-row a { display: inline-flex; margin-top: 8px; color: var(--blue); font-weight: 800; font-size: 13px; }
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 26px;
+}
 
 footer {
-  width: min(1240px, calc(100% - 40px));
+  width: min(1180px, calc(100% - 40px));
   margin: 0 auto 36px;
   color: var(--muted);
   font-size: 13px;
 }
 
-@media (max-width: 1020px) {
-  .hero,
-  .data-band,
-  .analysis-panel { grid-template-columns: 1fr; }
-  .data-stats { border-left: 0; border-top: 1px solid var(--line); }
-  .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 860px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .stats-band { grid-template-columns: repeat(2, 1fr); }
+  .stats-band div:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+  .stats-band div:nth-child(4) { border-top: 1px solid var(--line); }
+  .trend-row { grid-template-columns: 1fr; gap: 8px; }
 }
 
 @media (max-width: 680px) {
-  .topbar,
-  main,
-  footer { width: min(100% - 28px, 1240px); }
+  .topbar, main, footer { width: min(100% - 28px, 1180px); }
   .topbar { padding: 18px 0 8px; align-items: flex-start; flex-direction: column; }
   nav { width: 100%; justify-content: space-between; }
-  .hero-copy { padding: 24px; min-height: 420px; }
-  h1 { font-size: 42px; }
-  .data-stats,
-  .module-grid,
-  .news-grid,
-  .analysis-grid { grid-template-columns: 1fr; }
+  .hero { padding: 28px 24px; }
 }
 </style>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
-    <nav>
-      <a href="#news">热点</a>
-      <a href="archive.html">沉淀库</a>
-    </nav>
+    <a class="brand" href="./"><span class="logo">SC</span>出海内容素材雷达</a>
+    <nav><a href="./">今日素材</a><a href="topics.html">选题库</a><a href="archive.html">沉淀库</a></nav>
   </header>
-
   <main>
+
     <section class="hero">
-      <img src="assets/global-commerce-hero.png" alt="出海热点封面" />
-      <div class="hero-copy">
-        <p class="eyebrow">2026年8月4日 · Global Brand Intelligence</p>
-        <h1>出海热点</h1>
-        <p>面向出海内容运营：平台、内容、达人、投放与内容电商的每日核验情报。</p>
-      </div>
+      <p class="eyebrow">2026年8月5日 · Content Material Radar</p>
+      <h1>出海内容素材雷达</h1>
+      <p class="lead">竞品在投什么、用户在说什么、什么正在起量——每天 5 分钟，定好今天的选题。</p>
+      <p class="niche-line">赛道：赛道待定 ｜ 竞品：待配置 ｜ 关键词：待配置</p>
+    </section>
+    
+    <div class="setup-banner">
+      <strong>框架已就绪，赛道尚未设置</strong>
+      确定细分赛道后，把品类、3-5 个竞品品牌和关键词填进 <code>site.config.json</code>（可直接让 AI 助手代改），栏目就会开始为你工作。各栏目的素材格式见 <code>content/examples/materials.example.json</code>。
+    </div>
+
+    <section class="stats-band">
+      <div><strong>0</strong><span>今日素材总数</span></div>
+      <div><strong>0</strong><span>竞品广告素材</span></div>
+      <div><strong>0</strong><span>用户痛点原话</span></div>
+      <div><strong>0</strong><span>趋势信号</span></div>
     </section>
 
-    <section class="data-band">
-      <img src="assets/hotspots-data-cover.png" alt="热点数据封面" />
-      <div class="data-copy">
-        <p class="eyebrow">Daily Signal</p>
-        <h2>0 条热点，0 个来源</h2>
-        <p>完整24小时窗口内没有资讯同时通过事实时间、官方来源和海外内容运营相关性核验；48小时行业雷达候选也未达到公开原文、具体日期与新增事件要求，因此今日不做趋势外推。</p>
-        <p class="scan-window">晨间完整版 · 扫描窗口：2026-08-03T09:30:00+08:00 — 2026-08-04T09:30:00+08:00</p>
-      </div>
-      <div class="data-stats">
-        <div><strong>0</strong><span>热点</span></div>
-        <div><strong>0</strong><span>来源</span></div>
-      </div>
-    </section>
-
-    <section class="news-section" id="news">
+    <section class="section" id="ads">
       <div class="section-head">
-        <p class="eyebrow">News Feed</p>
-        <h2>热点卡片</h2>
+        <h2>竞品广告素材</h2>
+        <p>竞品正在投什么，每条附可用角度</p>
       </div>
-      <div class="news-grid">
-        
-        <article class="news-card empty-state">
-          <div class="card-body">
-            <div class="card-meta"><span>今日核验结果</span></div>
-            <h3>今日暂无通过“具体日期 + 当天新增 + 岗位相关”核验的核心资讯</h3>
-            <p>宁缺毋滥：没有用月份级更新时间、旧机制说明或同一平台的背景资料补足卡片。</p>
-          </div>
-        </article>
-        
+      <div class="card-grid">
+        <div class="empty-block">
+          <strong>今日暂无竞品素材</strong>
+          把竞品品牌名发给 AI 助手，让它从 Meta Ad Library / TikTok Creative Center 拉取正在投放的广告，填入 <code>content/materials.json</code> 的 <code>competitor_ads</code>。
+        </div>
       </div>
     </section>
-  </main>
 
-  <footer>
-    最后更新：2026-08-04 09:30 Asia/Shanghai。
-  </footer>
+    <section class="section" id="pains">
+      <div class="section-head">
+        <h2>用户痛点原话</h2>
+        <p>用户的真实抱怨和疑问，每条附可改写选题</p>
+      </div>
+      <div class="card-grid">
+        <div class="empty-block">
+          <strong>今日暂无用户原话</strong>
+          让 AI 助手去 Amazon 评论、Reddit 或竞品社媒评论区摘录用户原话，填入 <code>pain_points</code>——用户原话是最好的文案素材。
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="trends">
+      <div class="section-head">
+        <h2>趋势信号</h2>
+        <p>品类关键词热度变化，判断最近该做什么内容</p>
+      </div>
+      <div class="trend-list">
+        <div class="empty-block">
+          <strong>今日暂无趋势信号</strong>
+          让 AI 助手查 Google Trends / Pinterest Trends 上品类词的热度变化，填入 <code>trends</code>。
+        </div>
+      </div>
+    </section>
+
+    <footer style="width:100%;margin-top:36px;">素材日期：2026-08-05 · 页面生成：2026-08-05 14:41 Asia/Shanghai。</footer>
+
+  </main>
 </body>
 </html>

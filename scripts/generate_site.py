@@ -1,186 +1,67 @@
+"""出海内容素材雷达 - 静态站点生成器。
+
+数据来源（全部由人工或 AI 助手维护，脚本只负责渲染）：
+- site.config.json       站点配置：赛道、竞品、关键词
+- content/materials.json 每日素材：竞品广告 / 用户痛点 / 趋势信号
+- content/topics.json    选题库：从素材沉淀的可执行选题
+- content/history/       每日素材的自动归档
+
+输出到 public/：index.html（素材流）、topics.html（选题库）、archive.html（沉淀库）。
+"""
+
 import html
 import json
 import re
 import shutil
 import sys
-import urllib.parse
-import urllib.request
-import xml.etree.ElementTree as ET
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from email.utils import parsedate_to_datetime
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "public"
-ASSETS = PUBLIC / "assets"
-CURATED_REPORT = ROOT / "content" / "latest.json"
+CONFIG_FILE = ROOT / "site.config.json"
+MATERIALS_FILE = ROOT / "content" / "materials.json"
+TOPICS_FILE = ROOT / "content" / "topics.json"
 HISTORY_DIR = ROOT / "content" / "history"
-REVIEWS_DIR = ROOT / "content" / "reviews"
 PUBLIC_HISTORY_DIR = PUBLIC / "history"
 TIMEZONE = timezone(timedelta(hours=8))
-ITEMS_PER_CATEGORY = 1
-MIN_RELEVANCE_SCORE = 2
+MAX_REPORT_AGE_DAYS = 7
 
-CATEGORIES = [
-    "平台动作",
-    "内容趋势",
-    "达人/KOL",
-    "广告投放",
-    "内容电商",
-    "品牌案例",
-]
-
-QUERIES = [
-    "跨境电商 平台运营 最新",
-    "Amazon Global Selling seller update brand latest",
-    "TikTok Shop 跨境电商 品牌 最新",
-    "内容电商 品牌出海 最新",
-    "DTC 独立站 品牌出海 最新",
-    "Shopify DTC brand global expansion latest",
-    "跨境电商 物流 履约 支付 最新",
-    "cross-border ecommerce logistics fulfillment payment latest",
-    "品牌出海 合规 关税 监管 最新",
-    "cross-border ecommerce compliance tariff regulation latest",
-    "海外消费者 趋势 品牌出海 最新",
-    "global consumer trends ecommerce brand latest",
-]
-
-CATEGORY_KEYWORDS = [
-    ("平台经营", ["amazon", "temu", "shein", "marketplace", "seller", "平台", "卖家"]),
-    ("内容电商", ["tiktok", "creator", "live", "short video", "直播", "达人", "短视频", "内容"]),
-    ("DTC 独立站", ["shopify", "dtc", "独立站", "direct-to-consumer", "brand site"]),
-    ("物流支付", ["logistics", "shipping", "fulfillment", "payment", "物流", "支付", "履约"]),
-    ("合规政策", ["tariff", "compliance", "regulation", "privacy", "关税", "合规", "监管", "税"]),
-    ("消费趋势", ["consumer", "trend", "demand", "消费者", "趋势", "需求"]),
-]
-
-RELEVANCE_KEYWORDS = [
-    "品牌出海",
-    "出海",
-    "跨境",
-    "跨境电商",
-    "海外",
-    "全球化",
-    "amazon",
-    "temu",
-    "shein",
-    "tiktok shop",
-    "shopify",
-    "dtc",
-    "direct-to-consumer",
-    "cross border",
-    "cross-border",
-    "global selling",
-    "global expansion",
-    "ecommerce",
-    "marketplace",
-    "seller",
-    "logistics",
-    "fulfillment",
-    "compliance",
-    "tariff",
-    "consumer",
-]
-
-HIGH_VALUE_KEYWORDS = [
-    "品牌出海",
-    "跨境电商",
-    "中国品牌",
-    "tiktok shop",
-    "amazon global selling",
-    "global selling",
-    "cross-border",
-    "cross border",
-    "global expansion",
-    "dtc",
-    "direct-to-consumer",
-]
-
-NOISE_KEYWORDS = [
-    "stock",
-    "shares",
-    "earnings",
-    "股价",
-    "财报",
-    "招聘",
-    "job",
-    "coupon",
-    "优惠券",
-]
-
-CATEGORY_COVERS = {
-    "平台动作": "cover-platform-updates.png",
-    "内容趋势": "cover-content-trends-v2.png",
-    "达人/KOL": "cover-creators-v2.png",
-    "广告投放": "cover-ads.png",
-    "内容电商": "cover-commerce-v2.png",
-    "品牌案例": "cover-brand-cases-v2.png",
-}
+TOPIC_STATUSES = ["待做", "进行中", "已发布", "已验证"]
+TREND_SIGNALS = {"上升": "signal-up", "热议": "signal-hot", "下降": "signal-down"}
 
 
-@dataclass
-class Item:
-    title: str
-    link: str
-    source: str
-    published: str
-    summary: str
-    category: str
-    heat: int
-    fallback: bool = False
-    why: str = ""
-    framework: str = ""
-    action: str = ""
-    confidence: str = ""
-    signal_type: str = "已核验事实"
-    source_published_at: str = ""
-    source_timezone: str = ""
-    first_seen_at: str = ""
-    event_key: str = ""
+def load_json(path: Path, default):
+    if not path.exists():
+        return default
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"{path} 不是合法的 JSON：{exc}")
 
 
-def load_curated_report() -> tuple[list[Item], dict]:
-    if not CURATED_REPORT.exists():
-        return [], {}
-    payload = json.loads(CURATED_REPORT.read_text(encoding="utf-8"))
-    items = [
-        Item(
-            title=row["title"],
-            link=row["link"],
-            source=row["source"],
-            published=row["event_date"],
-            summary=row["summary"],
-            category=row["category"],
-            heat=row.get("heat", 90),
-            fallback=False,
-            why=row.get("why", ""),
-            framework=row.get("framework", ""),
-            action=row.get("action", ""),
-            confidence=row.get("confidence", ""),
-            signal_type=row.get("signal_type", "已核验事实"),
-            source_published_at=row.get("source_published_at", ""),
-            source_timezone=row.get("source_timezone", ""),
-            first_seen_at=row.get("first_seen_at", ""),
-            event_key=row.get("event_key", ""),
+def check_report_freshness(report_date: str, now: datetime) -> None:
+    """7 天内允许重新发布（模板/配置更新），超过 7 天视为过期拒绝部署。"""
+    today = now.strftime("%Y-%m-%d")
+    try:
+        report_day = datetime.strptime(report_date, "%Y-%m-%d").replace(tzinfo=TIMEZONE)
+    except (TypeError, ValueError):
+        raise RuntimeError(f"report_date {report_date!r} 不是合法的 YYYY-MM-DD 日期")
+    age_days = (now.date() - report_day.date()).days
+    if age_days < 0 or age_days > MAX_REPORT_AGE_DAYS:
+        raise RuntimeError(
+            f"素材报告日期 {report_date!r} 距今天 {today} 已 {age_days} 天，"
+            f"超过 {MAX_REPORT_AGE_DAYS} 天视为过期，保留线上已有版本。"
         )
-        for row in payload.get("items", [])
-    ]
-    signal_types = {item.signal_type for item in items}
-    allowed_signal_types = {"已核验事实", "行业雷达"}
-    if not signal_types.issubset(allowed_signal_types):
-        raise RuntimeError(f"Unsupported signal_type values: {sorted(signal_types - allowed_signal_types)}")
-    if len(signal_types) > 1:
-        raise RuntimeError("A daily report cannot mix verified facts with industry radar items.")
-    event_keys = [item.event_key for item in items if item.event_key]
-    if len(event_keys) != len(set(event_keys)):
-        raise RuntimeError("A daily report contains duplicate event_key values.")
-    return items, payload
+    if age_days > 0:
+        print(
+            f"warn: materials report is {age_days} day(s) old ({report_date}); "
+            "republishing with the latest site template.",
+            file=sys.stderr,
+        )
 
 
-def archive_report(report: dict) -> None:
-    """Keep each published daily report as a source file for later reviews."""
+def archive_materials(report: dict) -> None:
     report_date = report.get("report_date", "")
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", report_date):
         raise ValueError(f"Invalid report_date for archive: {report_date!r}")
@@ -190,7 +71,7 @@ def archive_report(report: dict) -> None:
     )
 
 
-def load_history_reports() -> list[dict]:
+def load_history() -> list[dict]:
     reports = []
     if not HISTORY_DIR.exists():
         return reports
@@ -204,608 +85,38 @@ def load_history_reports() -> list[dict]:
     return reports
 
 
-def load_review_reports() -> list[dict]:
-    reviews = []
-    if not REVIEWS_DIR.exists():
-        return reviews
-    for path in sorted(REVIEWS_DIR.glob("*.json"), reverse=True):
-        try:
-            review = json.loads(path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError:
-            continue
-        if isinstance(review, dict) and review.get("period"):
-            reviews.append(review)
-    return reviews
+def esc(value) -> str:
+    return html.escape(str(value or ""))
 
 
-def fetch_url(url: str, timeout: int = 20) -> bytes:
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "Mozilla/5.0 brand-global-news/4.0",
-            "Accept": "application/rss+xml, application/xml, text/xml",
-        },
-    )
-    with urllib.request.urlopen(request, timeout=timeout) as response:
-        return response.read()
-
-
-def strip_tags(value: str) -> str:
-    value = re.sub(r"<[^>]+>", " ", value or "")
-    value = html.unescape(value)
-    return re.sub(r"\s+", " ", value).strip()
-
-
-def normalize_link(link: str) -> str:
-    if "news.google.com" not in link:
-        return link
-    params = urllib.parse.parse_qs(urllib.parse.urlparse(link).query)
-    return params.get("url", [link])[0]
-
-
-def source_from_item(item: ET.Element) -> str:
-    source = item.findtext("source")
-    if source:
-        return strip_tags(source)
-    link = item.findtext("link") or ""
-    return urllib.parse.urlparse(link).netloc.replace("www.", "") or "资讯源"
-
-
-def parse_date(value: str) -> datetime:
+def fmt_date(report_date: str) -> str:
     try:
-        return parsedate_to_datetime(value).astimezone(TIMEZONE)
-    except Exception:
-        return datetime.now(TIMEZONE)
-
-
-def category_for(title: str, summary: str) -> str:
-    text = f"{title} {summary}".lower()
-    for category, words in CATEGORY_KEYWORDS:
-        if any(word.lower() in text for word in words):
-            return category
-    return "消费趋势"
-
-
-def relevance_score(item: Item) -> int:
-    text = f"{item.title} {item.summary} {item.source}".lower()
-    if any(keyword.lower() in text for keyword in NOISE_KEYWORDS):
-        return 0
-    score = sum(1 for keyword in RELEVANCE_KEYWORDS if keyword.lower() in text)
-    score += sum(2 for keyword in HIGH_VALUE_KEYWORDS if keyword.lower() in text)
-    score += 1 if item.category in CATEGORIES else 0
-    return score
-
-
-def is_recent(item: Item, now: datetime) -> bool:
-    return item.published == now.strftime("%Y-%m-%d")
-
-
-def is_relevant(item: Item, now: datetime) -> bool:
-    return relevance_score(item) >= MIN_RELEVANCE_SCORE and is_recent(item, now)
-
-
-def published_sort_value(item: Item) -> str:
-    return item.published or "0000-00-00"
-
-
-def heat_for(title: str, summary: str, index: int) -> int:
-    text = f"{title} {summary}".lower()
-    score = 68 + max(0, 18 - index * 2)
-    for _, words in CATEGORY_KEYWORDS:
-        score += sum(2 for word in words if word.lower() in text)
-    return min(score, 96)
-
-
-def insight_for(category: str) -> str:
-    mapping = {
-        "平台动作": "优先判断平台功能、规则和流量入口如何改变内容运营方式。",
-        "内容趋势": "把热点拆成可复用的选题、叙事结构和本地化表达。",
-        "达人/KOL": "关注达人发现、授权、佣金和长期合作机制，而不是只看粉丝量。",
-        "广告投放": "把素材标签、数据回传和增量 ROAS 连起来，避免只看表面播放量。",
-        "内容电商": "把短视频、直播、商品页和成交承接放进同一内容链路。",
-        "品牌案例": "提炼可复制的内容节奏、创作者组合和市场本地化方法。",
-    }
-    return mapping.get(category, "判断品牌资产、市场定位和渠道组合是否能支撑长期增长。")
-
-
-def fetch_google_news(query: str) -> list[Item]:
-    encoded = urllib.parse.quote(query)
-    url = f"https://news.google.com/rss/search?q={encoded}&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
-    data = fetch_url(url)
-    root = ET.fromstring(data)
-    items: list[Item] = []
-    for index, node in enumerate(root.findall("./channel/item")):
-        title = strip_tags(node.findtext("title") or "")
-        link = normalize_link(strip_tags(node.findtext("link") or ""))
-        summary = strip_tags(node.findtext("description") or "")
-        published_dt = parse_date(node.findtext("pubDate") or "")
-        source = source_from_item(node)
-        category = category_for(title, summary)
-        items.append(
-            Item(
-                title=title,
-                link=link,
-                source=source,
-                published=published_dt.strftime("%Y-%m-%d"),
-                summary=summary[:220],
-                category=category,
-                heat=heat_for(title, summary, index),
-                fallback=False,
-            )
-        )
-    return items
-
-
-def collect_items() -> list[Item]:
-    now = datetime.now(TIMEZONE)
-    seen: set[str] = set()
-    collected: list[Item] = []
-    for query in QUERIES:
-        try:
-            for item in fetch_google_news(query):
-                key = re.sub(r"\W+", "", item.title.lower())[:90]
-                if key and key not in seen and is_relevant(item, now):
-                    seen.add(key)
-                    collected.append(item)
-        except Exception as exc:
-            print(f"warn: failed query {query}: {exc}", file=sys.stderr)
-
-    selected: list[Item] = []
-    for category in CATEGORIES:
-        candidates = [item for item in collected if item.category == category]
-        candidates.sort(
-            key=lambda item: (published_sort_value(item), relevance_score(item), item.heat),
-            reverse=True,
-        )
-        selected.extend(candidates[:ITEMS_PER_CATEGORY])
-
-    return selected
-
-
-def fallback_items(today: str) -> list[Item]:
-    seeds = [
-        ("平台全球化工具继续降低多市场经营门槛", "https://sell.amazon.com/global-selling", "Amazon Global Selling", "平台经营"),
-        ("内容电商把种草、成交和履约压缩到同一链路", "https://seller.tiktokglobalshop.com/university", "TikTok Shop Academy", "内容电商"),
-        ("独立站经营重点转向复购、一方数据和本地化支付", "https://www.shopify.com/research/commerce-trends", "Shopify", "DTC 独立站"),
-        ("品牌出海从铺渠道转向经营长期信任资产", "https://www.shopify.com/research/commerce-trends", "Shopify", "品牌出海"),
-        ("履约体验正在成为海外消费者评价品牌的关键", "https://www.dhl.com/global-en/home/insights-and-innovation.html", "DHL Insights", "物流支付"),
-        ("成熟市场的关税、数据和产品安全要求继续抬高门槛", "https://trade.ec.europa.eu/access-to-markets/en/home", "EU Access2Markets", "合规政策"),
-    ]
-    return [
-        Item(
-            title=title,
-            link=link,
-            source=source,
-            published=today,
-            summary="自动资讯源暂时不可用，先展示稳定观察项。每日任务会在 GitHub 云端重新抓取最新来源。",
-            category=category,
-            heat=92 - index * 3,
-            fallback=True,
-        )
-        for index, (title, link, source, category) in enumerate(seeds)
-    ]
-
-
-def ensure_assets() -> None:
-    ASSETS.mkdir(parents=True, exist_ok=True)
-    for filename in [
-        "global-commerce-hero.png",
-        "hotspots-data-cover.png",
-        "cover-platform-updates.png",
-        "cover-ads.png",
-        *CATEGORY_COVERS.values(),
-    ]:
-        source = ROOT / "assets" / filename
-        if source.exists():
-            shutil.copy2(source, ASSETS / filename)
-
-
-def fmt_date(now: datetime) -> str:
-    return f"{now.year}年{now.month}月{now.day}日"
-
-
-def summary_mode(now: datetime) -> tuple[str, str]:
-    if now.month == 12 and now.day == 31:
-        return "年终总结", f"{now.year} 年品牌出海年度复盘"
-    if (now.month, now.day) in {(3, 31), (6, 30), (9, 30)}:
-        quarter = (now.month - 1) // 3 + 1
-        return "季度总结", f"{now.year} Q{quarter} 品牌出海季度复盘"
-    return "今日分析", "今天的资讯说明了什么"
-
-
-def category_counts(items: list[Item]) -> dict[str, int]:
-    counts = {category: 0 for category in CATEGORIES}
-    for item in items:
-        counts[item.category] = counts.get(item.category, 0) + 1
-    return counts
-
-
-def analysis_points(items: list[Item], now: datetime) -> list[str]:
-    counts = category_counts(items)
-    ordered = sorted(counts.items(), key=lambda pair: pair[1], reverse=True)
-    top = ordered[0][0] if ordered else "品牌出海"
-    second = ordered[1][0] if len(ordered) > 1 else "内容与履约"
-    mode, _ = summary_mode(now)
-    prefix = "本期" if mode != "今日分析" else "今天"
-    return [
-        f"{prefix}最集中的信号来自「{top}」，说明出海经营的核心注意力正在向这一侧倾斜。",
-        f"「{second}」也值得跟进，它往往决定流量能不能转成稳定订单和可复购用户。",
-        "建议把资讯拆成三个动作：调整选品假设、验证渠道效率、检查履约与合规成本。",
-    ]
-
-
-def keyword_hits(items: list[Item]) -> list[str]:
-    groups = [
-        ("平台规则", ["amazon", "temu", "shein", "marketplace", "seller", "平台", "卖家", "规则"]),
-        ("内容转化", ["tiktok", "creator", "live", "short video", "达人", "直播", "短视频", "内容"]),
-        ("独立站资产", ["shopify", "dtc", "独立站", "direct-to-consumer", "brand site"]),
-        ("履约成本", ["logistics", "shipping", "fulfillment", "物流", "履约", "配送"]),
-        ("合规门槛", ["tariff", "compliance", "regulation", "privacy", "关税", "合规", "监管", "税"]),
-        ("海外需求", ["consumer", "trend", "demand", "消费者", "趋势", "需求", "本地化"]),
-    ]
-    text = " ".join(f"{item.title} {item.summary}" for item in items).lower()
-    scored = []
-    for label, words in groups:
-        score = sum(text.count(word.lower()) for word in words)
-        if score:
-            scored.append((label, score))
-    scored.sort(key=lambda pair: pair[1], reverse=True)
-    return [label for label, _ in scored[:3]]
-
-
-def sample_titles(items: list[Item], limit: int = 3) -> str:
-    titles = [f"《{item.title}》" for item in items[:limit]]
-    if not titles:
-        return "今天没有抓到足够稳定的真实资讯"
-    return "、".join(titles)
-
-
-def category_read(category: str) -> str:
-    mapping = {
-        "平台经营": "它影响的是平台规则、流量入口、店铺效率和平台侧经营成本。",
-        "内容电商": "它影响的是内容种草、达人合作、直播短视频转化和商品页承接。",
-        "DTC 独立站": "它影响的是自有站转化、复购、一方数据和品牌资产沉淀。",
-        "物流支付": "它影响的是履约时效、支付体验、退换货成本和用户评价。",
-        "合规政策": "它影响的是关税、认证、隐私、产品安全和上市风险。",
-        "消费趋势": "它影响的是海外用户需求、本地化表达、价格敏感度和购买理由。",
-    }
-    return mapping.get(category, "它影响的是品牌出海的市场选择、渠道组合和长期经营确定性。")
-
-
-def source_read(item: Item) -> str:
-    if item.fallback:
-        return "这条是备用观察项，只能作为方向提醒，不能当成当天新闻结论。"
-    return f"来源是「{item.source}」，需要点开原文判断它是事实变化、平台公告，还是媒体观察。"
-
-
-def item_analysis(item: Item, index: int) -> str:
-    title = item.title.replace(" - ", "，来自")
-    return f"{index:02d}｜{item.category}：{title}。{category_read(item.category)}{source_read(item)}"
-
-
-def dynamic_analysis_paragraphs(items: list[Item], now: datetime) -> list[str]:
-    counts = category_counts(items)
-    ordered = [(category, count) for category, count in sorted(counts.items(), key=lambda pair: pair[1], reverse=True) if count]
-    top = ordered[0][0] if ordered else "品牌出海"
-    second = ordered[1][0] if len(ordered) > 1 else None
-    source_count = len({item.source for item in items})
-    signals = keyword_hits(items)
-    signal_text = "、".join(signals) if signals else f"{top}相关变化"
-    examples = sample_titles(items)
-    mode, _ = summary_mode(now)
-    period = "本期" if mode != "今日分析" else "今天"
-
-    category_text = f"「{top}」"
-    if second:
-        category_text += f"和「{second}」"
-
-    return [
-        f"{period}抓到的 {len(items)} 条资讯来自 {source_count} 个来源，信息重心落在{category_text}。这说明今天更值得看的不是单条新闻的热闹程度，而是这些内容共同暴露出的经营侧重点：{signal_text}正在影响品牌出海的判断顺序。",
-        f"从标题层面看，代表性线索包括{examples}。这些内容如果分开看只是新闻，但放在一起看，会指向同一个问题：品牌不能只判断某个平台有没有流量，还要判断这条增长路径能不能被内容、转化、履约和合规同时支撑。",
-        f"如果{top}占比最高，说明短期要先检查这一环节有没有改变原来的增长假设。比如平台类信号多，就看规则、流量入口和店铺效率；内容类信号多，就看素材、达人、商品页和库存承接；履约或合规信号变多，则要先算成本、时效和风险，再决定是否加大投放。",
-        f"因此，今天这份日报的读法不是追热点，而是把热点当成经营预警。你可以先标记哪些信息会影响选品、定价、渠道和供应链，再决定要不要进入下一步验证。对品牌出海来说，有用的资讯不是最多的资讯，而是能改变决策优先级的资讯。",
-    ]
-
-
-def dynamic_analysis_paragraphs(items: list[Item], now: datetime) -> list[str]:
-    real_items = [item for item in items if not item.fallback]
-    active_items = real_items or items
-    counts = category_counts(active_items)
-    ordered = [(category, count) for category, count in sorted(counts.items(), key=lambda pair: pair[1], reverse=True) if count]
-    top = ordered[0][0] if ordered else "品牌出海"
-    source_count = len({item.source for item in items})
-    signals = keyword_hits(active_items)
-    signal_text = "、".join(signals) if signals else f"{top}相关变化"
-    mode, _ = summary_mode(now)
-    period = "本期" if mode != "今日分析" else "今天"
-
-    if not real_items:
-        return [
-            f"{period}没有抓到严格符合当天日期和品牌出海主题的真实资讯，页面展示的是备用观察项。因此今天不做强结论，只把它当作检查清单。",
-            "如果连续几天真实资讯很少，说明筛选条件可能过窄；如果出现明显偏题内容，说明关键词还需要继续收紧。当前优先级是保证资讯真实和相关，而不是为了页面好看硬凑数量。",
-            *[item_analysis(item, index) for index, item in enumerate(active_items, start=1)],
-        ]
-
-    return [
-        f"{period}抓到 {len(real_items)} 条当天真实资讯，来自 {source_count} 个来源。信息最集中的分类是「{top}」，关键词信号主要是：{signal_text}。",
-        "今天的综合判断不再做泛泛总结，而是看每条资讯分别影响品牌出海的哪一段经营链路。下面这些判断来自当天标题、来源和分类标签。",
-        *[item_analysis(item, index) for index, item in enumerate(real_items, start=1)],
-    ]
-
-
-def render_analysis_paragraphs(items: list[Item], now: datetime) -> str:
-    return "\n".join(f"      <p>{html.escape(paragraph)}</p>" for paragraph in dynamic_analysis_paragraphs(items, now))
-
-
-def cover_for(category: str) -> str:
-    return CATEGORY_COVERS.get(category, CATEGORY_COVERS["品牌案例"])
-
-
-def render_modules(items: list[Item]) -> str:
-    counts = category_counts(items)
-    cards = []
-    for category in CATEGORIES:
-        cards.append(
-            f"""
-            <article class="module-card">
-              <img src="assets/{cover_for(category)}" alt="{html.escape(category)}封面" />
-              <div>
-                <span>{counts.get(category, 0)} 条</span>
-                <h3>{html.escape(category)}</h3>
-                <p>{html.escape(insight_for(category))}</p>
-              </div>
-            </article>
-            """
-        )
-    return "\n".join(cards)
-
-
-def render_cards(items: list[Item]) -> str:
-    if not items:
-        return """
-        <article class="news-card empty-state">
-          <div class="card-body">
-            <div class="card-meta"><span>今日核验结果</span></div>
-            <h3>今日暂无通过“具体日期 + 当天新增 + 岗位相关”核验的核心资讯</h3>
-            <p>宁缺毋滥：没有用月份级更新时间、旧机制说明或同一平台的背景资料补足卡片。</p>
-          </div>
-        </article>
-        """
-    cards = []
-    for index, item in enumerate(items, start=1):
-        link_text = "查看来源详情" if item.fallback else "查看原文"
-        cards.append(
-            f"""
-            <article class="news-card">
-              <img src="assets/{cover_for(item.category)}" alt="资讯预览图" />
-              <div class="card-body">
-                <div class="card-meta">
-                  <span>{index:02d}</span>
-                  <span class="category-tag">{html.escape(item.category)}</span>
-                  <span class="signal-tag">{html.escape(item.signal_type)}</span>
-                </div>
-                <h3>{html.escape(item.title)}</h3>
-                <p>{html.escape(item.summary or "暂无摘要，请点击来源查看详情。")}</p>
-                <div class="insight">
-                  <strong>为什么值得关注：</strong>{html.escape(item.why or insight_for(item.category))}<br />
-                  <strong>框架：</strong>{html.escape(item.framework or item.category)}<br />
-                  <strong>可借鉴动作：</strong>{html.escape(item.action or "结合目标市场做一次小规模内容验证。")}
-                </div>
-                <div class="card-foot">
-                  <span>{html.escape(item.source)} · {html.escape(item.published)} · {html.escape(item.confidence)}</span>
-                  <a href="{html.escape(item.link)}" target="_blank" rel="noreferrer">{link_text}</a>
-                </div>
-              </div>
-            </article>
-            """
-        )
-    return "\n".join(cards)
-
-
-def render_analysis_items(items: list[Item]) -> str:
-    rows = []
-    for index, item in enumerate(items, start=1):
-        rows.append(
-            f"""
-            <article class="analysis-source">
-              <span>{index:02d}</span>
-              <div>
-                <h3>{html.escape(item.title)}</h3>
-                <p>{html.escape(item.summary or "暂无摘要，请点击来源查看原文。")}</p>
-                <a href="{html.escape(item.link)}" target="_blank" rel="noreferrer">{html.escape(item.source)} · 查看原文</a>
-              </div>
-            </article>
-            """
-        )
-    return "\n".join(rows)
-
-
-def render_analysis_html(items: list[Item], now: datetime) -> str:
-    today = fmt_date(now)
-    machine_date = now.strftime("%Y-%m-%d %H:%M")
-    mode, analysis_title = summary_mode(now)
-    source_count = len({item.source for item in items})
-    analysis_body = render_analysis_paragraphs(items, now)
-
-    return f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{mode} · 品牌出海热点速递</title>
-  <style>{CSS}</style>
-</head>
-<body>
-  <header class="topbar">
-    <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
-    <nav>
-      <a href="./">首页</a>
-      <a href="#summary">综合判断</a>
-    </nav>
-  </header>
-
-  <main class="analysis-page">
-    <section class="analysis-hero">
-      <p class="eyebrow">{today} · {mode}</p>
-      <h1>{analysis_title}</h1>
-      <p>这不是资讯复述，而是把今天抓到的 {len(items)} 条热点和 {source_count} 个来源合在一起，判断它们共同指向的出海经营变化。</p>
-    </section>
-
-    <section class="analysis-long" id="summary">
-      <h2>综合判断</h2>
-{analysis_body}
-    </section>
-  </main>
-
-  <footer>
-    最后更新：{machine_date} Asia/Shanghai。季度最后一天自动切换为季度总结；12月31日自动切换为年终总结。
-  </footer>
-</body>
-</html>
-"""
-
-
-def render_html(items: list[Item], now: datetime, report: dict | None = None) -> str:
-    report = report or {}
-    report_date = report.get("report_date", now.strftime("%Y-%m-%d"))
-    try:
-        report_day = datetime.strptime(report_date, "%Y-%m-%d").replace(tzinfo=TIMEZONE)
-        today = fmt_date(report_day)
+        day = datetime.strptime(report_date, "%Y-%m-%d")
+        return f"{day.year}年{day.month}月{day.day}日"
     except ValueError:
-        today = report_date
-    machine_date = now.strftime("%Y-%m-%d %H:%M")
-    source_count = len({item.source for item in items})
-    top_title = items[0].title if items else "今日暂无可用资讯"
-    edition_label = {"morning": "晨间完整版"}.get(report.get("edition"), "当前版")
-    scan_start = report.get("scan_window_start", "")
-    scan_end = report.get("scan_window_end", "")
-    scan_window = f"扫描窗口：{scan_start} — {scan_end}" if scan_start and scan_end else "扫描窗口：待下次自动更新记录"
-
-    return f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>品牌出海热点速递</title>
-  <style>{CSS}</style>
-</head>
-<body>
-  <header class="topbar">
-    <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
-    <nav>
-      <a href="#news">热点</a>
-      <a href="archive.html">沉淀库</a>
-    </nav>
-  </header>
-
-  <main>
-    <section class="hero">
-      <img src="assets/global-commerce-hero.png" alt="出海热点封面" />
-      <div class="hero-copy">
-        <p class="eyebrow">{today} · Global Brand Intelligence</p>
-        <h1>出海热点</h1>
-        <p>面向出海内容运营：平台、内容、达人、投放与内容电商的每日核验情报。</p>
-      </div>
-    </section>
-
-    <section class="data-band">
-      <img src="assets/hotspots-data-cover.png" alt="热点数据封面" />
-      <div class="data-copy">
-        <p class="eyebrow">Daily Signal</p>
-        <h2>{len(items)} 条热点，{source_count} 个来源</h2>
-        <p>{html.escape(report.get("trend", "优先判断哪些平台与内容变化会改变今天的运营动作。"))}</p>
-        <p class="scan-window">{edition_label} · {html.escape(scan_window)}</p>
-      </div>
-      <div class="data-stats">
-        <div><strong>{len(items)}</strong><span>热点</span></div>
-        <div><strong>{source_count}</strong><span>来源</span></div>
-      </div>
-    </section>
-
-    <section class="news-section" id="news">
-      <div class="section-head">
-        <p class="eyebrow">News Feed</p>
-        <h2>热点卡片</h2>
-      </div>
-      <div class="news-grid">
-        {render_cards(items)}
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    最后更新：{machine_date} Asia/Shanghai。
-  </footer>
-</body>
-</html>
-"""
+        return report_date
 
 
-def render_archive_html(history: list[dict], reviews: list[dict], now: datetime) -> str:
-    history_rows = []
-    for report in history:
-        item_count = len(report.get("items", []))
-        history_rows.append(
-            f"""
-            <article class="analysis-source">
-              <span>{html.escape(report.get("report_date", ""))}</span>
-              <div>
-                <h3>{item_count} 条当日情报</h3>
-                <p>{html.escape(report.get("trend", "暂无趋势判断。"))}</p>
-                <a href="history/{html.escape(report.get("report_date", ""))}.json" target="_blank" rel="noreferrer">查看结构化归档</a>
-              </div>
-            </article>
-            """
-        )
-    review_rows = []
-    for review in reviews:
-        review_rows.append(
-            f"""
-            <article class="analysis-source">
-              <span>{html.escape(review.get("period", ""))}</span>
-              <div>
-                <h3>{html.escape(review.get("title", "阶段总结"))}</h3>
-                <p>{html.escape(review.get("summary", ""))}</p>
-                <p><strong>建议：</strong>{html.escape(review.get("action", ""))}</p>
-              </div>
-            </article>
-            """
-        )
-    history_html = "\n".join(history_rows) or "<p>历史归档将在每日发布后自动沉淀。</p>"
-    reviews_html = "\n".join(review_rows) or "<p>首份季度/年度总结将在对应周期结束后生成。</p>"
-    return f"""<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>情报沉淀库 · 品牌出海热点速递</title>
-  <style>{CSS}</style>
-</head>
-<body>
-  <header class="topbar">
-    <a class="brand" href="./"><span>BG</span>品牌出海热点速递</a>
-    <nav><a href="./">首页</a><a href="#reviews">季度/年度总结</a><a href="#history">每日归档</a></nav>
-  </header>
-  <main class="analysis-page">
-    <section class="analysis-hero">
-      <p class="eyebrow">Knowledge Archive</p>
-      <h1>内容运营情报沉淀库</h1>
-      <p>每天保留结构化情报；季度末与年末以这些已保存的来源、类别、市场和行动建议为基础进行复盘。</p>
-    </section>
-    <section class="analysis-long" id="reviews">
-      <h2>季度与年度总结</h2>
-      <div class="analysis-sources">{reviews_html}</div>
-    </section>
-    <section class="analysis-long" id="history">
-      <h2>每日归档</h2>
-      <p>已沉淀 {len(history)} 期。每期均保留当日结论、行动建议和条目链接，供季度总结追溯。</p>
-      <div class="analysis-sources">{history_html}</div>
-    </section>
-  </main>
-  <footer>最后更新：{now.strftime("%Y-%m-%d %H:%M")} Asia/Shanghai。</footer>
-</body>
-</html>
-"""
+def history_entry_count(report: dict) -> int:
+    if "items" in report:  # 旧版资讯归档
+        return len(report.get("items") or [])
+    return sum(
+        len(report.get(key) or [])
+        for key in ("competitor_ads", "pain_points", "trends")
+    )
+
+
+def history_entry_summary(report: dict) -> str:
+    if report.get("trend"):  # 旧版资讯归档
+        return report["trend"]
+    parts = []
+    if report.get("competitor_ads"):
+        parts.append(f"竞品素材 {len(report['competitor_ads'])} 条")
+    if report.get("pain_points"):
+        parts.append(f"用户原话 {len(report['pain_points'])} 条")
+    if report.get("trends"):
+        parts.append(f"趋势信号 {len(report['trends'])} 条")
+    return "；".join(parts) if parts else "当日无素材记录。"
 
 
 CSS = r"""
@@ -816,7 +127,10 @@ CSS = r"""
   --panel: #ffffff;
   --line: #dce4e8;
   --green: #0f766e;
+  --green-soft: rgba(15, 118, 110, .1);
   --blue: #285f95;
+  --amber: #b45309;
+  --amber-soft: rgba(180, 83, 9, .1);
   --shadow: 0 18px 46px rgba(18, 30, 38, .1);
 }
 
@@ -831,9 +145,10 @@ body {
 }
 
 a { color: inherit; text-decoration: none; }
+h1, h2, h3, p { margin: 0; }
 
 .topbar {
-  width: min(1240px, calc(100% - 40px));
+  width: min(1180px, calc(100% - 40px));
   min-height: 74px;
   margin: 0 auto;
   display: flex;
@@ -849,7 +164,7 @@ a { color: inherit; text-decoration: none; }
   font-weight: 800;
 }
 
-.brand span {
+.brand .logo {
   width: 34px;
   height: 34px;
   display: grid;
@@ -861,464 +176,553 @@ a { color: inherit; text-decoration: none; }
 }
 
 nav { display: flex; gap: 16px; color: var(--muted); font-size: 14px; }
+nav a:hover { color: var(--ink); }
 
 main {
-  width: min(1240px, calc(100% - 40px));
+  width: min(1180px, calc(100% - 40px));
   margin: 0 auto 58px;
 }
 
 .hero {
-  min-height: 560px;
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  border: 1px solid rgba(220, 228, 232, .92);
+  padding: 40px 44px;
   border-radius: 10px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  background: #111b22;
-}
-
-.hero > img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
   background:
-    linear-gradient(90deg, rgba(8, 16, 20, .88), rgba(8, 16, 20, .42) 48%, rgba(8, 16, 20, .76)),
-    linear-gradient(0deg, rgba(8, 16, 20, .82), transparent 56%);
-}
-
-.data-band,
-.module-card,
-.analysis-panel,
-.news-card {
-  border: 1px solid rgba(220, 228, 232, .92);
-  border-radius: 10px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.hero-copy {
-  width: min(760px, calc(100% - 48px));
-  padding: 0 0 44px 44px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  position: relative;
-  z-index: 1;
+    linear-gradient(135deg, rgba(15, 118, 110, .16), transparent 46%),
+    var(--ink);
   color: #fff;
+  box-shadow: var(--shadow);
 }
 
-.hero-copy::after {
-  content: none;
-}
+.hero .eyebrow { color: #7fd1c8; }
 
 .eyebrow {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: var(--green);
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-h1, h2, h3, p { margin: 0; }
-
-h1 {
-  max-width: 720px;
-  font-size: clamp(48px, 7vw, 86px);
-  line-height: .98;
-  letter-spacing: 0;
-  position: relative;
-  z-index: 1;
+.hero h1 {
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.08;
 }
 
-.hero-copy p:not(.eyebrow) {
-  max-width: 720px;
-  margin-top: 18px;
-  color: rgba(255,255,255,.82);
-  font-size: 18px;
-  position: relative;
-  z-index: 1;
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 28px;
-  position: relative;
-  z-index: 1;
-}
-
-.hero-actions a {
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: #fff;
-  color: var(--ink);
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.hero-actions a + a {
-  background: rgba(255,255,255,.12);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,.24);
-}
-
-.data-band > img,
-.module-card img,
-.news-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.data-band {
-  min-height: 190px;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 240px;
-  gap: 0;
-  margin: 20px 0;
-}
-
-.data-band > img { min-height: 190px; filter: saturate(.9) contrast(.95); }
-
-.data-copy {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.data-copy h2,
-.section-head h2,
-.analysis-panel h2 {
-  font-size: 28px;
-  line-height: 1.15;
-}
-
-.data-copy p:not(.eyebrow) {
-  margin-top: 10px;
-  color: var(--muted);
-}
-
-.data-copy .scan-window {
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.data-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  border-left: 1px solid var(--line);
-}
-
-.data-stats div {
-  padding: 22px 18px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  border-left: 1px solid var(--line);
-}
-
-.data-stats strong { font-size: 30px; line-height: 1; }
-.data-stats span { margin-top: 8px; color: var(--muted); font-size: 13px; }
-
-.section-head { margin: 28px 0 14px; }
-
-.module-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.module-card {
-  min-height: 220px;
-  display: grid;
-  grid-template-rows: 110px 1fr;
-}
-
-.module-card img { filter: brightness(.78) saturate(.9); }
-
-.module-card div { padding: 16px; }
-.module-card span { color: var(--green); font-size: 12px; font-weight: 800; }
-.module-card h3 { margin-top: 6px; font-size: 20px; }
-.module-card p { margin-top: 8px; color: var(--muted); font-size: 13px; }
-
-.analysis-panel {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
-  gap: 24px;
-  padding: 24px;
-  margin: 24px 0;
-  border-left: 6px solid var(--green);
-}
-
-.analysis-panel ol { margin: 0; padding-left: 22px; color: var(--muted); }
-.analysis-panel li + li { margin-top: 10px; }
-
-.analysis-teaser {
-  color: var(--muted);
-}
-
-.analysis-teaser a {
-  display: inline-flex;
+.hero p.lead {
+  max-width: 640px;
   margin-top: 14px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: var(--ink);
-  color: #fff;
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.analysis-page {
-  max-width: 980px;
-}
-
-.analysis-hero,
-.analysis-long {
-  border: 1px solid rgba(220, 228, 232, .92);
-  border-radius: 10px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-}
-
-.analysis-hero {
-  padding: 42px;
-  margin-bottom: 20px;
-  background:
-    linear-gradient(135deg, rgba(15, 118, 110, .12), transparent 42%),
-    #fff;
-}
-
-.analysis-hero h1 {
-  max-width: 780px;
-}
-
-.analysis-hero p:not(.eyebrow) {
-  max-width: 760px;
-  margin-top: 18px;
-  color: var(--muted);
-  font-size: 18px;
-}
-
-.analysis-long {
-  padding: 28px;
-  margin-bottom: 18px;
-}
-
-.analysis-long h2 {
-  font-size: 28px;
-  line-height: 1.15;
-  margin-bottom: 14px;
-}
-
-.analysis-long p {
-  color: var(--muted);
+  color: rgba(255, 255, 255, .82);
   font-size: 16px;
 }
 
-.analysis-long p + p {
-  margin-top: 14px;
+.niche-line {
+  margin-top: 18px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, .66);
 }
 
-.analysis-long ol {
-  margin: 0;
-  padding-left: 22px;
-  color: var(--muted);
-}
-
-.analysis-long li + li {
-  margin-top: 10px;
-}
-
-.analysis-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.analysis-grid div {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 14px;
-  background: #f9fbfb;
-}
-
-.analysis-grid strong {
-  display: block;
-  margin-bottom: 6px;
-}
-
-.analysis-grid p {
+.setup-banner {
+  margin-top: 16px;
+  padding: 16px 20px;
+  border: 1px dashed var(--amber);
+  border-radius: 10px;
+  background: var(--amber-soft);
+  color: #7c4a03;
   font-size: 14px;
 }
 
-.analysis-sources {
-  display: grid;
-  gap: 12px;
-}
-
-.analysis-source {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 14px;
-  padding: 14px 0;
-  border-top: 1px solid var(--line);
-}
-
-.analysis-source span {
-  color: var(--green);
-  font-weight: 900;
-}
-
-.analysis-source h3 {
-  font-size: 18px;
-  line-height: 1.28;
-}
-
-.analysis-source p {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.analysis-source a {
-  display: inline-flex;
-  margin-top: 10px;
-  color: var(--blue);
-  font-weight: 800;
+.setup-banner strong { display: block; margin-bottom: 4px; }
+.setup-banner code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, .7);
   font-size: 13px;
 }
 
-.news-grid {
+.stats-band {
+  margin: 20px 0 8px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.stats-band div {
+  padding: 20px;
+  border-left: 1px solid var(--line);
+}
+
+.stats-band div:first-child { border-left: 0; }
+.stats-band strong { font-size: 28px; line-height: 1; display: block; }
+.stats-band span { margin-top: 6px; color: var(--muted); font-size: 13px; display: block; }
+
+.section { margin-top: 34px; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.section-head h2 { font-size: 26px; line-height: 1.15; }
+.section-head p { color: var(--muted); font-size: 13px; }
+
+.card-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
-.news-card {
-  min-height: 388px;
-  display: grid;
-  grid-template-rows: 138px 1fr;
-}
-
-.news-card > img { filter: brightness(.78) saturate(.92); }
-
-.card-body {
-  padding: 18px;
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.card-meta,
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.tag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-weight: 800;
+}
+
+.tag.plain {
+  background: rgba(15, 23, 42, .07);
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.card h3 { font-size: 18px; line-height: 1.32; }
+.card .copy { color: var(--muted); font-size: 14px; }
+
+.quote {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 4px solid var(--green);
+  border-radius: 0 8px 8px 0;
+  background: #f4f8f8;
+  color: #31424b;
+  font-size: 14px;
+}
+
+.takeaway {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+  color: #31424b;
+}
+
+.takeaway strong { color: var(--ink); }
+
 .card-foot {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   gap: 12px;
   color: var(--muted);
   font-size: 12px;
 }
 
-.category-tag {
-  padding: 3px 9px;
+.card-foot a { color: var(--blue); font-weight: 800; white-space: nowrap; }
+
+.trend-list { display: grid; gap: 12px; }
+
+.trend-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 72px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.trend-row .kw { font-weight: 800; font-size: 16px; word-break: break-all; }
+
+.signal {
+  display: inline-block;
+  padding: 3px 10px;
   border-radius: 999px;
-  background: rgba(15, 118, 110, .1);
-  color: var(--green);
+  font-size: 12px;
   font-weight: 800;
+  text-align: center;
 }
 
-.signal-tag {
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, .08);
+.signal-up { background: var(--green-soft); color: var(--green); }
+.signal-hot { background: var(--amber-soft); color: var(--amber); }
+.signal-down { background: rgba(15, 23, 42, .07); color: var(--muted); }
+
+.trend-row .evidence { color: var(--muted); font-size: 14px; }
+.trend-row .suggestion { margin-top: 6px; font-size: 14px; color: #31424b; }
+.trend-row a { color: var(--blue); font-weight: 800; font-size: 13px; }
+
+.empty-block {
+  grid-column: 1 / -1;
+  padding: 28px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: var(--panel);
   color: var(--muted);
-  font-weight: 700;
-}
-
-.news-card h3 { font-size: 19px; line-height: 1.28; }
-.news-card p { color: var(--muted); font-size: 14px; }
-
-.insight {
-  margin-top: auto;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-  color: #31424b;
   font-size: 14px;
 }
 
-.card-foot a { color: var(--blue); font-weight: 800; white-space: nowrap; }
+.empty-block strong { color: var(--ink); display: block; margin-bottom: 6px; font-size: 16px; }
+.empty-block code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #eef2f4;
+  font-size: 13px;
+}
+
+.topic-group { margin-top: 22px; }
+.topic-group h3 { font-size: 18px; margin-bottom: 10px; }
+.topic-group h3 span { color: var(--muted); font-size: 13px; font-weight: 400; margin-left: 8px; }
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.status-0 { background: var(--amber); }
+.status-1 { background: var(--blue); }
+.status-2 { background: var(--green); }
+.status-3 { background: var(--muted); }
+
+.archive-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+}
+
+.archive-row .date { color: var(--green); font-weight: 800; font-size: 14px; }
+.archive-row h3 { font-size: 16px; }
+.archive-row p { margin-top: 6px; color: var(--muted); font-size: 14px; }
+.archive-row a { display: inline-flex; margin-top: 8px; color: var(--blue); font-weight: 800; font-size: 13px; }
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 26px;
+}
 
 footer {
-  width: min(1240px, calc(100% - 40px));
+  width: min(1180px, calc(100% - 40px));
   margin: 0 auto 36px;
   color: var(--muted);
   font-size: 13px;
 }
 
-@media (max-width: 1020px) {
-  .hero,
-  .data-band,
-  .analysis-panel { grid-template-columns: 1fr; }
-  .data-stats { border-left: 0; border-top: 1px solid var(--line); }
-  .module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (max-width: 860px) {
+  .card-grid { grid-template-columns: 1fr; }
+  .stats-band { grid-template-columns: repeat(2, 1fr); }
+  .stats-band div:nth-child(3) { border-left: 0; border-top: 1px solid var(--line); }
+  .stats-band div:nth-child(4) { border-top: 1px solid var(--line); }
+  .trend-row { grid-template-columns: 1fr; gap: 8px; }
 }
 
 @media (max-width: 680px) {
-  .topbar,
-  main,
-  footer { width: min(100% - 28px, 1240px); }
+  .topbar, main, footer { width: min(100% - 28px, 1180px); }
   .topbar { padding: 18px 0 8px; align-items: flex-start; flex-direction: column; }
   nav { width: 100%; justify-content: space-between; }
-  .hero-copy { padding: 24px; min-height: 420px; }
-  h1 { font-size: 42px; }
-  .data-stats,
-  .module-grid,
-  .news-grid,
-  .analysis-grid { grid-template-columns: 1fr; }
+  .hero { padding: 28px 24px; }
 }
 """
 
 
-def main() -> None:
-    now = datetime.now(TIMEZONE)
-    today = now.strftime("%Y-%m-%d")
-    items, report = load_curated_report()
-    if report.get("report_date") != today:
-        raise RuntimeError(
-            f"Curated report date is {report.get('report_date')!r}, expected Beijing date {today}; "
-            "keeping the previous verified deployment."
+def page_shell(title: str, nav: str, body: str) -> str:
+    return f"""<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{esc(title)}</title>
+  <style>{CSS}</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="logo">SC</span>{esc(title)}</a>
+    <nav>{nav}</nav>
+  </header>
+  <main>
+{body}
+  </main>
+</body>
+</html>
+"""
+
+
+NAV_INDEX = '<a href="./">今日素材</a><a href="topics.html">选题库</a><a href="archive.html">沉淀库</a>'
+NAV_TOPICS = '<a href="./">今日素材</a><a href="archive.html">沉淀库</a>'
+NAV_ARCHIVE = '<a href="./">今日素材</a><a href="topics.html">选题库</a>'
+
+
+def render_setup_banner(config: dict) -> str:
+    if config.get("niche"):
+        return ""
+    return """
+    <div class="setup-banner">
+      <strong>框架已就绪，赛道尚未设置</strong>
+      确定细分赛道后，把品类、3-5 个竞品品牌和关键词填进 <code>site.config.json</code>（可直接让 AI 助手代改），栏目就会开始为你工作。各栏目的素材格式见 <code>content/examples/materials.example.json</code>。
+    </div>"""
+
+
+def render_ad_card(ad: dict) -> str:
+    return f"""
+        <article class="card">
+          <div class="card-meta">
+            <span class="tag">{esc(ad.get("brand"))}</span>
+            <span class="tag plain">{esc(ad.get("platform"))}</span>
+          </div>
+          <h3>{esc(ad.get("headline"))}</h3>
+          <p class="copy">{esc(ad.get("copy"))}</p>
+          <div class="takeaway"><strong>可用角度：</strong>{esc(ad.get("angle"))}</div>
+          <div class="card-foot">
+            <span>{esc(ad.get("noted_at"))}</span>
+            <a href="{esc(ad.get("link"))}" target="_blank" rel="noreferrer">查看原素材</a>
+          </div>
+        </article>"""
+
+
+def render_pain_card(pain: dict) -> str:
+    return f"""
+        <article class="card">
+          <div class="card-meta"><span class="tag plain">{esc(pain.get("source"))}</span></div>
+          <blockquote class="quote">{esc(pain.get("quote"))}</blockquote>
+          <div class="takeaway"><strong>可改写成选题：</strong>{esc(pain.get("topic_idea"))}</div>
+          <div class="card-foot">
+            <span></span>
+            <a href="{esc(pain.get("link"))}" target="_blank" rel="noreferrer">查看出处</a>
+          </div>
+        </article>"""
+
+
+def render_trend_row(trend: dict) -> str:
+    signal = trend.get("signal", "")
+    signal_class = TREND_SIGNALS.get(signal, "signal-down")
+    link_html = ""
+    if trend.get("link"):
+        link_html = f'<a href="{esc(trend.get("link"))}" target="_blank" rel="noreferrer">查看数据</a>'
+    return f"""
+        <div class="trend-row">
+          <span class="kw">{esc(trend.get("keyword"))}</span>
+          <span class="signal {signal_class}">{esc(signal)}</span>
+          <div>
+            <p class="evidence">{esc(trend.get("evidence"))}</p>
+            <p class="suggestion">{esc(trend.get("suggestion"))}</p>
+            {link_html}
+          </div>
+        </div>"""
+
+
+def empty_block(title: str, hint: str) -> str:
+    return f"""
+        <div class="empty-block">
+          <strong>{esc(title)}</strong>
+          {hint}
+        </div>"""
+
+
+def render_index(config: dict, materials: dict, now: datetime) -> str:
+    report_date = materials.get("report_date", "")
+    ads = materials.get("competitor_ads") or []
+    pains = materials.get("pain_points") or []
+    trends = materials.get("trends") or []
+    total = len(ads) + len(pains) + len(trends)
+    machine_date = now.strftime("%Y-%m-%d %H:%M")
+
+    niche = config.get("niche") or "赛道待定"
+    competitors = "、".join(config.get("competitors") or []) or "待配置"
+    keywords = "、".join(config.get("keywords") or []) or "待配置"
+
+    ads_html = "\n".join(render_ad_card(ad) for ad in ads) or empty_block(
+        "今日暂无竞品素材",
+        "把竞品品牌名发给 AI 助手，让它从 Meta Ad Library / TikTok Creative Center 拉取正在投放的广告，填入 <code>content/materials.json</code> 的 <code>competitor_ads</code>。",
+    )
+    pains_html = "\n".join(render_pain_card(p) for p in pains) or empty_block(
+        "今日暂无用户原话",
+        "让 AI 助手去 Amazon 评论、Reddit 或竞品社媒评论区摘录用户原话，填入 <code>pain_points</code>——用户原话是最好的文案素材。",
+    )
+    trends_html = "\n".join(render_trend_row(t) for t in trends) or empty_block(
+        "今日暂无趋势信号",
+        "让 AI 助手查 Google Trends / Pinterest Trends 上品类词的热度变化，填入 <code>trends</code>。",
+    )
+
+    body = f"""
+    <section class="hero">
+      <p class="eyebrow">{esc(fmt_date(report_date))} · Content Material Radar</p>
+      <h1>{esc(config.get("site_name", "出海内容素材雷达"))}</h1>
+      <p class="lead">{esc(config.get("tagline", ""))}</p>
+      <p class="niche-line">赛道：{esc(niche)} ｜ 竞品：{esc(competitors)} ｜ 关键词：{esc(keywords)}</p>
+    </section>
+    {render_setup_banner(config)}
+
+    <section class="stats-band">
+      <div><strong>{total}</strong><span>今日素材总数</span></div>
+      <div><strong>{len(ads)}</strong><span>竞品广告素材</span></div>
+      <div><strong>{len(pains)}</strong><span>用户痛点原话</span></div>
+      <div><strong>{len(trends)}</strong><span>趋势信号</span></div>
+    </section>
+
+    <section class="section" id="ads">
+      <div class="section-head">
+        <h2>竞品广告素材</h2>
+        <p>竞品正在投什么，每条附可用角度</p>
+      </div>
+      <div class="card-grid">{ads_html}
+      </div>
+    </section>
+
+    <section class="section" id="pains">
+      <div class="section-head">
+        <h2>用户痛点原话</h2>
+        <p>用户的真实抱怨和疑问，每条附可改写选题</p>
+      </div>
+      <div class="card-grid">{pains_html}
+      </div>
+    </section>
+
+    <section class="section" id="trends">
+      <div class="section-head">
+        <h2>趋势信号</h2>
+        <p>品类关键词热度变化，判断最近该做什么内容</p>
+      </div>
+      <div class="trend-list">{trends_html}
+      </div>
+    </section>
+
+    <footer style="width:100%;margin-top:36px;">素材日期：{esc(report_date)} · 页面生成：{machine_date} Asia/Shanghai。</footer>
+"""
+    return page_shell(config.get("site_name", "出海内容素材雷达"), NAV_INDEX, body)
+
+
+def render_topics(config: dict, topics: list[dict], now: datetime) -> str:
+    groups = []
+    for index, status in enumerate(TOPIC_STATUSES):
+        rows = [t for t in topics if (t.get("status") or "待做") == status]
+        if not rows:
+            continue
+        cards = []
+        for topic in rows:
+            meta_bits = []
+            if topic.get("from"):
+                meta_bits.append(f"来源：{topic['from']}")
+            if topic.get("planned_date"):
+                meta_bits.append(f"排期：{topic['planned_date']}")
+            cards.append(f"""
+        <article class="card">
+          <h3>{esc(topic.get("title"))}</h3>
+          <p class="copy">{esc(topic.get("notes"))}</p>
+          <div class="card-foot"><span>{esc(" ｜ ".join(meta_bits))}</span></div>
+        </article>""")
+        groups.append(f"""
+    <section class="topic-group">
+      <h3><span class="status-dot status-{index}"></span>{esc(status)}<span>{len(rows)} 个</span></h3>
+      <div class="card-grid">{''.join(cards)}
+      </div>
+    </section>""")
+
+    if groups:
+        content = "".join(groups)
+    else:
+        content = empty_block(
+            "选题库还是空的",
+            "在「今日素材」里看到可用的角度后，让 AI 助手把它登记进 <code>content/topics.json</code>：标题、来源素材、排期和状态（待做/进行中/已发布/已验证）。",
         )
 
+    body = f"""
+    <section class="hero">
+      <p class="eyebrow">Topic Pipeline</p>
+      <h1>选题库</h1>
+      <p class="lead">素材只有变成选题并排期，才会变成发布的内容。按状态推进：待做 → 进行中 → 已发布 → 已验证。</p>
+    </section>
+    {content}
+    <footer style="width:100%;margin-top:36px;">页面生成：{now.strftime("%Y-%m-%d %H:%M")} Asia/Shanghai。</footer>
+"""
+    return page_shell(f"选题库 · {config.get('site_name', '')}", NAV_TOPICS, body)
+
+
+def render_archive(config: dict, history: list[dict], now: datetime) -> str:
+    rows = []
+    for report in history:
+        count = history_entry_count(report)
+        rows.append(f"""
+      <div class="archive-row">
+        <span class="date">{esc(report.get("report_date"))}</span>
+        <div>
+          <h3>{count} 条当日记录</h3>
+          <p>{esc(history_entry_summary(report))}</p>
+          <a href="history/{esc(report.get("report_date"))}.json" target="_blank" rel="noreferrer">查看结构化归档</a>
+        </div>
+      </div>""")
+    rows_html = "\n".join(rows) or "<p style=\"color:var(--muted)\">历史归档将在每日素材发布后自动沉淀。</p>"
+
+    body = f"""
+    <section class="hero">
+      <p class="eyebrow">Knowledge Archive</p>
+      <h1>素材沉淀库</h1>
+      <p class="lead">每天的素材报告自动归档，月底回看哪些角度反复出现，就是值得长期投入的内容方向。</p>
+    </section>
+    <section class="section">
+      <div class="panel">
+        <p style="color:var(--muted);margin-bottom:8px;">已沉淀 {len(history)} 期。</p>
+        {rows_html}
+      </div>
+    </section>
+    <footer style="width:100%;margin-top:36px;">页面生成：{now.strftime("%Y-%m-%d %H:%M")} Asia/Shanghai。</footer>
+"""
+    return page_shell(f"沉淀库 · {config.get('site_name', '')}", NAV_ARCHIVE, body)
+
+
+def main() -> None:
+    now = datetime.now(TIMEZONE)
+    config = load_json(CONFIG_FILE, {})
+    materials = load_json(MATERIALS_FILE, {})
+    topics = load_json(TOPICS_FILE, {}).get("topics", [])
+
+    check_report_freshness(materials.get("report_date", ""), now)
+
     PUBLIC.mkdir(exist_ok=True)
-    ensure_assets()
-    archive_report(report)
-    history = load_history_reports()
-    reviews = load_review_reports()
+    archive_materials(materials)
+    history = load_history()
     PUBLIC_HISTORY_DIR.mkdir(parents=True, exist_ok=True)
     for source in HISTORY_DIR.glob("????-??-??.json"):
         shutil.copy2(source, PUBLIC_HISTORY_DIR / source.name)
-    (PUBLIC / "index.html").write_text(render_html(items, now, report), encoding="utf-8")
-    (PUBLIC / "archive.html").write_text(render_archive_html(history, reviews, now), encoding="utf-8")
+
+    (PUBLIC / "index.html").write_text(render_index(config, materials, now), encoding="utf-8")
+    (PUBLIC / "topics.html").write_text(render_topics(config, topics, now), encoding="utf-8")
+    (PUBLIC / "archive.html").write_text(render_archive(config, history, now), encoding="utf-8")
     (PUBLIC / ".nojekyll").write_text("", encoding="utf-8")
-    (PUBLIC / "latest.json").write_text(
-        json.dumps([item.__dict__ for item in items], ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    print(f"generated {PUBLIC / 'index.html'} with {len(items)} items")
+    total = history_entry_count(materials)
+    print(f"generated site with {total} materials and {len(topics)} topics")
 
 
 if __name__ == "__main__":

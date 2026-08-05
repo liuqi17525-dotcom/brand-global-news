@@ -1,0 +1,31 @@
+{
+  "report_date": "2026-08-05",
+  "competitor_ads": [
+    {
+      "brand": "示例品牌A",
+      "platform": "Meta",
+      "headline": "50% off summer sale ends tonight",
+      "copy": "广告原文摘录：强调限时折扣 + 用户晒单场景……",
+      "link": "https://facebook.com/ads/library/",
+      "angle": "可用角度：限时紧迫感 + 真实用户场景，可改造成「黑五预热」脚本",
+      "noted_at": "2026-08-05"
+    }
+  ],
+  "pain_points": [
+    {
+      "source": "Amazon 评论 · 某竞品 listing",
+      "quote": "用户原话：The battery only lasts 3 days, not 30 as claimed...",
+      "link": "https://www.amazon.com/",
+      "topic_idea": "可改写成选题：「续航虚标」横向实测对比视频"
+    }
+  ],
+  "trends": [
+    {
+      "keyword": "smart feeder",
+      "signal": "上升",
+      "evidence": "Google Trends 过去 30 天搜索量 +40%",
+      "link": "https://trends.google.com/",
+      "suggestion": "建议：本周优先做 2 条 smart feeder 相关短视频"
+    }
+  ]
+}

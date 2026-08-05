@@ -30,19 +30,26 @@ jobs:
       - name: Generate site
         run: python scripts/generate_site.py
 
-      - name: Verify curated report
+      - name: Verify materials report
         run: |
           python - <<'PY'
           import json
           from datetime import datetime, timedelta, timezone
           from pathlib import Path
-          report = json.loads(Path("content/latest.json").read_text(encoding="utf-8"))
-          today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
-          assert report.get("report_date") == today, (
-              f"report date {report.get('report_date')!r} does not match Beijing date {today}"
+          report = json.loads(Path("content/materials.json").read_text(encoding="utf-8"))
+          today = datetime.now(timezone(timedelta(hours=8))).date()
+          report_day = datetime.strptime(report["report_date"], "%Y-%m-%d").date()
+          age = (today - report_day).days
+          assert 0 <= age <= 7, (
+              f"report date {report['report_date']!r} is {age} day(s) from Beijing date {today}; "
+              "reports older than 7 days are treated as stale"
           )
-          assert isinstance(report.get("items"), list), "report items must be a list"
-          print(f"publishing {report['report_date']} with {len(report['items'])} verified items")
+          for key in ("competitor_ads", "pain_points", "trends"):
+              assert isinstance(report.get(key, []), list), f"{key} must be a list"
+          if age:
+              print(f"warning: republishing {age}-day-old report with latest template")
+          total = sum(len(report.get(k, [])) for k in ("competitor_ads", "pain_points", "trends"))
+          print(f"publishing {report['report_date']} with {total} materials")
           PY
 
       - name: Configure Pages
