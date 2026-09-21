@@ -1,21 +1,26 @@
 {
-  "site_name": "国学 × AI 全网情报站",
-  "tagline": "每天扫描各大内容平台，把国学、人工智能与两者交叉领域的公开信息汇成一张可检索的情报地图。",
-  "topics": ["国学", "AI", "国学×AI"],
+  "site_name": "国学内容与合规情报站",
+  "tagline": "持续追踪国学内容趋势与平台规则变化，让选题有来源、发布有边界。",
+  "topics": ["经典文化", "非遗民俗", "易学民俗", "中医文化", "数字国学"],
   "lookback_days": 14,
   "items_per_source": 8,
   "sources": [
-    {"name": "微信公众号", "domain": "mp.weixin.qq.com", "query": "国学 OR 人工智能 OR AI", "kind": "深度文章"},
-    {"name": "微博", "domain": "weibo.com", "query": "国学 OR 人工智能 OR AI", "kind": "热点讨论"},
-    {"name": "知乎", "domain": "zhihu.com", "query": "国学 OR 人工智能 OR 大模型", "kind": "问答观点"},
-    {"name": "小红书", "domain": "xiaohongshu.com", "query": "国学 OR AI OR 传统文化", "kind": "生活方式"},
-    {"name": "抖音", "domain": "douyin.com", "query": "国学 OR AI OR 传统文化", "kind": "短视频"},
-    {"name": "哔哩哔哩", "domain": "bilibili.com", "query": "国学 OR 人工智能 OR AI", "kind": "视频"},
-    {"name": "今日头条", "domain": "toutiao.com", "query": "国学 OR 人工智能 OR AI", "kind": "资讯"},
-    {"name": "YouTube", "domain": "youtube.com", "query": "国学 OR Chinese philosophy OR artificial intelligence", "kind": "视频"},
-    {"name": "X", "domain": "x.com", "query": "Chinese culture OR artificial intelligence OR AI", "kind": "全球热议"},
-    {"name": "Reddit", "domain": "reddit.com", "query": "Chinese philosophy OR artificial intelligence", "kind": "社区讨论"},
-    {"name": "Hacker News", "domain": "news.ycombinator.com", "query": "AI OR LLM OR agents", "kind": "科技前沿"},
-    {"name": "arXiv", "domain": "arxiv.org", "query": "artificial intelligence OR large language model", "kind": "论文研究"}
+    {"name": "微信公众号", "domain": "mp.weixin.qq.com", "query": "国学 OR 传统文化 OR 古籍", "kind": "深度文章"},
+    {"name": "微博", "domain": "weibo.com", "query": "国学 OR 非遗 OR 传统文化", "kind": "热点讨论"},
+    {"name": "知乎", "domain": "zhihu.com", "query": "国学 OR 古籍 OR 易经", "kind": "问答观点"},
+    {"name": "小红书", "domain": "xiaohongshu.com", "query": "国学 OR 非遗 OR 传统文化", "kind": "生活方式"},
+    {"name": "抖音", "domain": "douyin.com", "query": "国学 OR 非遗 OR 传统文化", "kind": "短视频"},
+    {"name": "哔哩哔哩", "domain": "bilibili.com", "query": "国学 OR 古籍 OR 传统文化", "kind": "视频"},
+    {"name": "今日头条", "domain": "toutiao.com", "query": "国学 OR 非遗 OR 传统文化", "kind": "资讯"},
+    {"name": "YouTube", "domain": "youtube.com", "query": "国学 OR Chinese philosophy OR traditional Chinese culture", "kind": "视频"},
+    {"name": "X", "domain": "x.com", "query": "国学 OR Chinese philosophy OR traditional Chinese culture", "kind": "全球讨论"}
+  ],
+  "policy_sources": [
+    {"platform": "抖音", "title": "抖音社区自律公约", "url": "https://lf3-cdn-tos.draftstatic.com/obj/ies-hotsoon-draft/douyin_creator/40db1b96-0eb0-4754-a052-16e8325af350.html", "focus": ["封建迷信", "伪科学", "宗教", "医疗健康", "商业推广"], "guidance": "传统文化科普与迷信断言要明确区分；避免算命、改运、消灾等确定性承诺。"},
+    {"platform": "小红书", "title": "聚光平台内容与行业规则", "url": "https://ad.xiaohongshu.com/next_help/docs/8dc5bd9c45c9a90cb9912f3400d43f92", "focus": ["封建迷信", "功效承诺", "医疗健康", "资质", "商业推广"], "guidance": "风水、手相、塔罗、面相、算命等营销风险高；不得暗示改变命运、健康、情感或财富。"},
+    {"platform": "微博", "title": "微博社区公约", "url": "https://service.account.weibo.com/h5/roles/gongyue", "focus": ["迷信", "宗教", "历史文化", "广告", "谣言"], "guidance": "不得宣扬邪教、迷信或歪曲历史文化；商业内容还需遵循广告与推广审核规范。"},
+    {"platform": "哔哩哔哩", "title": "哔哩哔哩用户与社区规则", "url": "https://www.bilibili.com/blackboard/protocal/hd-account-useragreement.html", "focus": ["封建迷信", "宗教", "历史", "创作推广"], "guidance": "文化讲解应有资料依据；避免将民俗传说包装为可验证事实或付费改运服务。"},
+    {"platform": "微信公众平台", "title": "微信公众平台帮助中心", "url": "https://kf.qq.com/product/weixinmp.html", "focus": ["封建迷信", "诱导", "医疗健康", "营销牟利"], "guidance": "重点规避用恐吓、运势、风水等噱头博取关注或牟利，以及无资质健康建议。"},
+    {"platform": "今日头条", "title": "今日头条用户协议与社区规则", "url": "https://www.toutiao.com/user_agreement/", "focus": ["封建迷信", "谣言", "历史文化", "医疗健康"], "guidance": "区分文化介绍、个人观点与事实结论，避免无依据的预测、疗效和绝对化表达。"}
   ]
 }

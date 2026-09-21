@@ -1,41 +1,40 @@
-# 国学 × AI 全网情报站
+# 国学内容与合规情报站
 
-一个部署在 GitHub Pages 的公开信息聚合站，聚焦三个主题：
+一个部署在 GitHub Pages 的公开情报站，服务两件事：
 
-- 国学：传统文化、古籍、诗词、儒释道、中医文化等
-- AI：大模型、生成式 AI、智能体、产品与研究进展
-- 国学 × AI：古籍数字化、知识库、文化数字人、AI 解读与创作
+- 内容趋势：追踪经典文化、非遗民俗、易学民俗、中医文化和数字国学相关内容。
+- 合规雷达：监测主要内容平台的官方规则页面，提示与国学创作相关的迷信、健康、宗教、营销和夸大承诺风险。
 
-## 覆盖平台
+## 覆盖范围
 
-微信公众号、微博、知乎、小红书、抖音、哔哩哔哩、今日头条、YouTube、X、Reddit、Hacker News、arXiv。
+内容来源包括微信公众号、微博、知乎、小红书、抖音、哔哩哔哩、今日头条、YouTube 和 X。采集器通过公开搜索 RSS 建立索引，不登录账号、不绕过验证码、反爬或付费墙。
 
-采集器通过 Google News 的公开 RSS 查询各平台已被公开索引的页面，不登录账号、不绕过验证码或反爬限制。因搜索引擎收录存在延迟，数据适合做内容雷达，不应当作平台完整数据库。
+合规来源优先使用抖音、小红书、微博、哔哩哔哩、微信公众平台和今日头条的官方规则或帮助页面。页面指纹变化只代表“疑似有变化”，必须打开官方规则人工确认。
 
 ## 自动更新
 
 GitHub Actions 每天北京时间 08:15 和 20:15 自动运行：
 
-1. `scripts/collect_sources.py` 拉取公开 RSS，清洗、去重并分类。
-2. `scripts/generate_site.py` 生成首页、平台矩阵、选题库和归档页。
-3. 构建结果自动发布到 GitHub Pages。
+1. `scripts/collect_sources.py` 拉取、清洗、去重并分类国学公开内容。
+2. `scripts/collect_policies.py` 核验官方规则页面并记录变化状态。
+3. `scripts/generate_site.py` 生成内容流、合规雷达、平台矩阵、选题库和归档。
+4. 构建结果自动发布到 GitHub Pages。
 
-也可以在 Actions 页手动运行 `Guoxue AI Radar`。
+也可以在 Actions 页手动运行 `Guoxue Content and Compliance Radar`。
 
 ## 本地预览
 
 ```bash
-python scripts/collect_sources.py  # 可选，需要联网
+python scripts/collect_sources.py   # 可选，需要联网
+python scripts/collect_policies.py  # 可选，需要联网
 python scripts/generate_site.py
 python -m http.server 8000 --directory public
 ```
 
 打开 `http://localhost:8000`。
 
-## 配置
+## 配置与边界
 
-编辑 `site.config.json` 即可增减平台、关键词、回看天数和每个平台的条目上限。`content/materials.json` 是最近一次快照，采集全部失败时会保留上一份数据，避免线上页面突然清空。
+编辑 `site.config.json` 可增减内容来源、主题和官方规则页面。`content/materials.json` 与 `content/policies.json` 是最近一次快照。
 
-## 内容边界
-
-本站只展示标题、短摘要、平台分类和原始链接。引用、转载或用于商业内容前，请回到原平台核验作者、发布时间和授权条件。
+本站仅展示公开信息索引与运营风险提示，不构成法律意见，也不保证平台最终审核结果。引用、转载或发布商业内容前，请回到原始内容及平台官方规则核验。
