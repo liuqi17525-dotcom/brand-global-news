@@ -1,4 +1,4 @@
-name: Guoxue AI Radar
+name: Guoxue Content and Compliance Radar
 
 on:
   push:
@@ -33,6 +33,9 @@ jobs:
       - name: Collect public platform signals
         run: python scripts/collect_sources.py
 
+      - name: Monitor official platform policies
+        run: python scripts/collect_policies.py
+
       - name: Generate site
         run: python scripts/generate_site.py
 
@@ -43,10 +46,12 @@ jobs:
           from pathlib import Path
           report = json.loads(Path("content/materials.json").read_text(encoding="utf-8"))
           assert isinstance(report.get("items"), list), "items must be a list"
-          for page in ("index.html", "sources.html", "topics.html", "archive.html"):
+          policies = json.loads(Path("content/policies.json").read_text(encoding="utf-8"))
+          assert isinstance(policies.get("policies"), list), "policies must be a list"
+          for page in ("index.html", "compliance.html", "sources.html", "topics.html", "archive.html"):
               path = Path("public") / page
               assert path.exists() and path.stat().st_size > 500, f"missing or empty: {page}"
-          print(f"publishing {report['report_date']} with {len(report['items'])} items")
+          print(f"publishing {report['report_date']} with {len(report['items'])} items and {len(policies['policies'])} policy sources")
           PY
 
       - name: Configure Pages
