@@ -1,10 +1,13 @@
-name: Daily Brand Global News
+name: Guoxue AI Radar
 
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+  schedule:
+    # Beijing time 08:15 and 20:15 (UTC 00:15 and 12:15)
+    - cron: "15 0,12 * * *"
 
 permissions:
   contents: read
@@ -27,29 +30,23 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Collect public platform signals
+        run: python scripts/collect_sources.py
+
       - name: Generate site
         run: python scripts/generate_site.py
 
-      - name: Verify materials report
+      - name: Verify generated pages
         run: |
           python - <<'PY'
           import json
-          from datetime import datetime, timedelta, timezone
           from pathlib import Path
           report = json.loads(Path("content/materials.json").read_text(encoding="utf-8"))
-          today = datetime.now(timezone(timedelta(hours=8))).date()
-          report_day = datetime.strptime(report["report_date"], "%Y-%m-%d").date()
-          age = (today - report_day).days
-          assert 0 <= age <= 7, (
-              f"report date {report['report_date']!r} is {age} day(s) from Beijing date {today}; "
-              "reports older than 7 days are treated as stale"
-          )
-          for key in ("competitor_ads", "pain_points", "trends"):
-              assert isinstance(report.get(key, []), list), f"{key} must be a list"
-          if age:
-              print(f"warning: republishing {age}-day-old report with latest template")
-          total = sum(len(report.get(k, [])) for k in ("competitor_ads", "pain_points", "trends"))
-          print(f"publishing {report['report_date']} with {total} materials")
+          assert isinstance(report.get("items"), list), "items must be a list"
+          for page in ("index.html", "sources.html", "topics.html", "archive.html"):
+              path = Path("public") / page
+              assert path.exists() and path.stat().st_size > 500, f"missing or empty: {page}"
+          print(f"publishing {report['report_date']} with {len(report['items'])} items")
           PY
 
       - name: Configure Pages
