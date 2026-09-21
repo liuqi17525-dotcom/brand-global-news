@@ -1,8 +1,21 @@
 {
-  "site_name": "出海内容素材雷达",
-  "tagline": "竞品在投什么、用户在说什么、什么正在起量——每天 5 分钟，定好今天的选题。",
-  "niche": "",
-  "competitors": [],
-  "keywords": [],
-  "notes": "赛道确定后：把 niche 填成你的品类（如「宠物智能用品」），competitors 填 3-5 个竞品品牌名，keywords 填品类英文关键词。可以直接让 AI 助手帮你改这个文件。"
+  "site_name": "国学 × AI 全网情报站",
+  "tagline": "每天扫描各大内容平台，把国学、人工智能与两者交叉领域的公开信息汇成一张可检索的情报地图。",
+  "topics": ["国学", "AI", "国学×AI"],
+  "lookback_days": 14,
+  "items_per_source": 8,
+  "sources": [
+    {"name": "微信公众号", "domain": "mp.weixin.qq.com", "query": "国学 OR 人工智能 OR AI", "kind": "深度文章"},
+    {"name": "微博", "domain": "weibo.com", "query": "国学 OR 人工智能 OR AI", "kind": "热点讨论"},
+    {"name": "知乎", "domain": "zhihu.com", "query": "国学 OR 人工智能 OR 大模型", "kind": "问答观点"},
+    {"name": "小红书", "domain": "xiaohongshu.com", "query": "国学 OR AI OR 传统文化", "kind": "生活方式"},
+    {"name": "抖音", "domain": "douyin.com", "query": "国学 OR AI OR 传统文化", "kind": "短视频"},
+    {"name": "哔哩哔哩", "domain": "bilibili.com", "query": "国学 OR 人工智能 OR AI", "kind": "视频"},
+    {"name": "今日头条", "domain": "toutiao.com", "query": "国学 OR 人工智能 OR AI", "kind": "资讯"},
+    {"name": "YouTube", "domain": "youtube.com", "query": "国学 OR Chinese philosophy OR artificial intelligence", "kind": "视频"},
+    {"name": "X", "domain": "x.com", "query": "Chinese culture OR artificial intelligence OR AI", "kind": "全球热议"},
+    {"name": "Reddit", "domain": "reddit.com", "query": "Chinese philosophy OR artificial intelligence", "kind": "社区讨论"},
+    {"name": "Hacker News", "domain": "news.ycombinator.com", "query": "AI OR LLM OR agents", "kind": "科技前沿"},
+    {"name": "arXiv", "domain": "arxiv.org", "query": "artificial intelligence OR large language model", "kind": "论文研究"}
+  ]
 }

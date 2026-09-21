@@ -1,42 +1,41 @@
-# 出海内容素材雷达
+# 国学 × AI 全网情报站
 
-一个部署在 GitHub Pages 上的个人内容素材工作台，面向出海品牌内容运营。
+一个部署在 GitHub Pages 的公开信息聚合站，聚焦三个主题：
 
-它不追新闻，只收集三类能直接变成选题的原料：
+- 国学：传统文化、古籍、诗词、儒释道、中医文化等
+- AI：大模型、生成式 AI、智能体、产品与研究进展
+- 国学 × AI：古籍数字化、知识库、文化数字人、AI 解读与创作
 
-- **竞品广告素材**：竞品在 Meta / TikTok 正在投放的广告，每条附「可用角度」
-- **用户痛点原话**：Amazon 评论、Reddit、社媒评论区里的用户原话，每条附「可改写成的选题」
-- **趋势信号**：品类关键词的热度变化，附行动建议
+## 覆盖平台
 
-素材进一步沉淀为**选题库**（topics.html，按 待做/进行中/已发布/已验证 推进），每日素材自动归档进**沉淀库**（archive.html）。
+微信公众号、微博、知乎、小红书、抖音、哔哩哔哩、今日头条、YouTube、X、Reddit、Hacker News、arXiv。
 
-## 它是配置驱动的
+采集器通过 Google News 的公开 RSS 查询各平台已被公开索引的页面，不登录账号、不绕过验证码或反爬限制。因搜索引擎收录存在延迟，数据适合做内容雷达，不应当作平台完整数据库。
 
-赛道没定也能先用。确定赛道后只需要改 `site.config.json`：
+## 自动更新
 
-```json
-{
-  "niche": "你的品类，如：宠物智能用品",
-  "competitors": ["竞品品牌A", "竞品品牌B"],
-  "keywords": ["品类英文关键词"]
-}
-```
+GitHub Actions 每天北京时间 08:15 和 20:15 自动运行：
 
-## 每天怎么用
+1. `scripts/collect_sources.py` 拉取公开 RSS，清洗、去重并分类。
+2. `scripts/generate_site.py` 生成首页、平台矩阵、选题库和归档页。
+3. 构建结果自动发布到 GitHub Pages。
 
-1. 让 AI 助手（如 WorkBuddy）按 `site.config.json` 里的竞品和关键词，去 Meta Ad Library、Amazon 评论、Google Trends 等来源收集素材
-2. 素材写入 `content/materials.json`（格式见 `content/examples/materials.example.json`），`report_date` 改成当天
-3. 推送到 main 分支，GitHub Actions 自动生成并发布网站
+也可以在 Actions 页手动运行 `Guoxue AI Radar`。
 
 ## 本地预览
 
-```
+```bash
+python scripts/collect_sources.py  # 可选，需要联网
 python scripts/generate_site.py
+python -m http.server 8000 --directory public
 ```
 
-然后打开 `public/index.html`。
+打开 `http://localhost:8000`。
 
-## 注意
+## 配置
 
-- 素材报告超过 7 天未更新时，部署会被拦截（保留线上已有版本）
-- 网站默认公开，不要放入账号、密钥、客户信息等内容
+编辑 `site.config.json` 即可增减平台、关键词、回看天数和每个平台的条目上限。`content/materials.json` 是最近一次快照，采集全部失败时会保留上一份数据，避免线上页面突然清空。
+
+## 内容边界
+
+本站只展示标题、短摘要、平台分类和原始链接。引用、转载或用于商业内容前，请回到原平台核验作者、发布时间和授权条件。
