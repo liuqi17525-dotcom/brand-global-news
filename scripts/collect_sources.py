@@ -1,4 +1,4 @@
-"""Collect public Guoxue and AI signals from platform-indexed news RSS feeds."""
+"""Collect public Guoxue signals from platform-indexed news RSS feeds."""
 
 from __future__ import annotations
 
@@ -23,18 +23,20 @@ OUTPUT_FILE = ROOT / "content" / "materials.json"
 TIMEZONE = timezone(timedelta(hours=8))
 USER_AGENT = "Mozilla/5.0 (compatible; GuoxueAIRadar/1.0; +https://github.com/liuqi17525-dotcom/brand-global-news)"
 
-GUOXUE_WORDS = {
-    "国学", "传统文化", "古籍", "诗词", "易经", "周易", "儒家", "道家", "佛学",
-    "中医", "书法", "汉服", "文言文", "chinese philosophy", "chinese culture",
-}
-AI_WORDS = {
-    "人工智能", "ai", "aigc", "大模型", "生成式", "智能体", "agent", "llm",
-    "machine learning", "artificial intelligence", "language model", "deep learning",
-}
 TOPIC_QUERIES = {
-    "国学": '"国学" OR "传统文化" OR "古籍" OR "易经" OR "儒家" OR "道家" OR "诗词"',
-    "AI": '"人工智能" OR "大模型" OR "生成式AI" OR "AI Agent" OR "LLM"',
-    "国学×AI": '("国学" OR "传统文化" OR "古籍") ("人工智能" OR "AI" OR "大模型")',
+    # Put the cross-over theme first so deduplication keeps the more specific label.
+    "数字国学": '("国学" OR "传统文化" OR "古籍") ("AI" OR "人工智能" OR "数字化")',
+    "经典文化": '"国学" OR "古籍" OR "诗词" OR "儒家" OR "道家" OR "文言文"',
+    "非遗民俗": '"非遗" OR "传统文化" OR "戏曲" OR "书法" OR "汉服" OR "茶文化"',
+    "易学民俗": '"易经" OR "周易" OR "风水" OR "命理" OR "民俗文化"',
+    "中医文化": '"中医文化" OR "黄帝内经" OR "本草纲目" OR "中医养生"',
+}
+TOPIC_WORDS = {
+    "数字国学": ("ai", "人工智能", "数字化", "大模型", "数字人"),
+    "经典文化": ("国学", "古籍", "诗词", "儒家", "道家", "文言文", "chinese philosophy"),
+    "非遗民俗": ("非遗", "传统文化", "戏曲", "书法", "汉服", "茶文化", "traditional chinese culture"),
+    "易学民俗": ("易经", "周易", "风水", "命理", "民俗文化"),
+    "中医文化": ("中医文化", "黄帝内经", "本草纲目", "中医养生"),
 }
 
 
@@ -44,15 +46,13 @@ def clean_text(value: str | None) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
-def classify_topic(text: str) -> str:
+def matches_topic(text: str, topic: str) -> bool:
     lowered = text.casefold()
-    has_guoxue = any(word in lowered for word in GUOXUE_WORDS)
-    has_ai = any(word in lowered for word in AI_WORDS)
-    if has_guoxue and has_ai:
-        return "国学×AI"
-    if has_guoxue:
-        return "国学"
-    return "AI"
+    if topic == "数字国学":
+        digital = any(word in lowered for word in TOPIC_WORDS[topic])
+        culture = any(word in lowered for word in ("国学", "传统文化", "古籍", "诗词", "非遗", "chinese culture"))
+        return digital and culture
+    return any(word in lowered for word in TOPIC_WORDS[topic])
 
 
 def parse_date(raw: str | None) -> datetime | None:
@@ -94,10 +94,7 @@ def parse_feed(payload: bytes, source: dict, topic: str, cutoff: datetime, limit
             continue
         if published and published < cutoff:
             continue
-        classified = classify_topic(f"{title} {description}")
-        if topic == "国学×AI" and classified != "国学×AI":
-            continue
-        if topic != "国学×AI" and classified not in {topic, "国学×AI"}:
+        if not matches_topic(f"{title} {description}", topic):
             continue
         results.append({
             "id": hashlib.sha1(url.encode("utf-8")).hexdigest()[:12],
